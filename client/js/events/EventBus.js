@@ -26,6 +26,20 @@ class EventBus {
   }
 
   /**
+   * Subscribe to an event for exactly one execution
+   * @param {string} event - Name of the event
+   * @param {Function} callback - Handler function
+   * @returns {Function} Unsubscribe function
+   */
+  once(event, callback) {
+    const wrapper = (data) => {
+      this.off(event, wrapper);
+      callback(data);
+    };
+    return this.on(event, wrapper);
+  }
+
+  /**
    * Unsubscribe from an event
    * @param {string} event - Name of the event
    * @param {Function} callback - Handler function to remove
