@@ -50,4 +50,14 @@ const userSchema = new mongoose.Schema({
 // Index totalScore descending for high-speed leaderboard queries
 userSchema.index({ totalScore: -1 });
 
+/**
+ * Calculate virtual identity adventurer tier based on accumulated stars
+ */
+userSchema.methods.getAdventurerTier = function() {
+  if (this.totalStars >= 12) return 'Grand Master';
+  if (this.totalStars >= 8) return 'Adept Conjurer';
+  if (this.totalStars >= 4) return 'Rune Scholar';
+  return 'Apprentice Novice';
+};
+
 module.exports = mongoose.models.User || mongoose.model('User', userSchema);
