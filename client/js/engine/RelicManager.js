@@ -61,6 +61,7 @@ class RelicManager {
     // Active battle state (per level usage limit)
     this.battleCharges = { ...this.inventory };
     this.activeTargetingRelic = null;
+    this.totalCrafted = 0;
 
     this.bindEvents();
   }
@@ -123,13 +124,15 @@ class RelicManager {
     this.fragments -= def.cost;
     this.inventory[relicType] = (this.inventory[relicType] || 0) + 1;
     this.battleCharges[relicType] = (this.battleCharges[relicType] || 0) + 1;
+    this.totalCrafted++;
 
     if (this.eventBus) {
       this.eventBus.emit('relic:crafted', {
         relicType,
         relicName: def.name,
         remainingFragments: this.fragments,
-        newCount: this.inventory[relicType]
+        newCount: this.inventory[relicType],
+        totalCrafted: this.totalCrafted
       });
       this.eventBus.emit('fragments:updated', { fragments: this.fragments });
     }
@@ -138,7 +141,19 @@ class RelicManager {
       success: true,
       relic: def,
       remainingFragments: this.fragments,
-      count: this.inventory[relicType]
+      count: this.inventory[relicType],
+      totalCrafted: this.totalCrafted
+    };
+  }
+
+  /**
+   * Return a snapshot of current relic inventory and crafting achievements
+   */
+  getCraftingSummary() {
+    return {
+      fragments: this.fragments,
+      inventory: { ...this.inventory },
+      totalCrafted: this.totalCrafted
     };
   }
 
