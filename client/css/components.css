@@ -488,6 +488,7 @@
   color: var(--text-secondary);
   line-height: 1.6;
 }
+
 /* Navigation lock icon badge */
 .nav-lock-badge {
   display: inline-block;
@@ -497,6 +498,7 @@
   opacity: 0.85;
   transition: transform 0.2s ease;
 }
+
 .nav-link:hover .nav-lock-badge {
   transform: scale(1.2);
 }
@@ -542,6 +544,7 @@
   transform: translateY(-10px);
   box-shadow: 0 12px 30px rgba(234, 179, 8, 0.22);
 }
+
 .podium-card.first:hover {
   transform: translateY(-16px);
 }
@@ -565,8 +568,15 @@
 }
 
 @keyframes floatCrown {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-4px);
+  }
 }
 
 .podium-avatar {
@@ -602,6 +612,7 @@
   color: #047857;
   margin: 10px 0 4px;
 }
+
 .podium-score small {
   font-size: 0.75rem;
   font-weight: 600;
@@ -727,10 +738,12 @@
   background: linear-gradient(135deg, #f59e0b, #d97706);
   color: #ffffff;
 }
+
 .tier-adept {
   background: linear-gradient(135deg, #059669, #047857);
   color: #ffffff;
 }
+
 .tier-scholar {
   background: linear-gradient(135deg, #0284c7, #0369a1);
   color: #ffffff;
@@ -882,19 +895,24 @@
     flex-direction: column;
     align-items: stretch;
   }
+
   .podium-card.first {
     order: 1;
     transform: none;
   }
+
   .podium-card.second {
     order: 2;
   }
+
   .podium-card.third {
     order: 3;
   }
+
   .dossier-stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+
   .dossier-achievements-row {
     grid-template-columns: 1fr;
   }
