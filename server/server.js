@@ -58,9 +58,16 @@ app.use('/api/banana', bananaRoutes);
 
 // System Health Check endpoint
 app.get('/api/health', (req, res) => {
+  const memory = process.memoryUsage();
   res.json({
     status: 'online',
     game: 'PuzzleQuest: A Strategy-Based Match-Three Adventure',
+    uptimeSeconds: Math.floor(process.uptime()),
+    nodeVersion: process.version,
+    memoryUsageMB: {
+      rss: Math.round(memory.rss / (1024 * 1024)),
+      heapUsed: Math.round(memory.heapUsed / (1024 * 1024))
+    },
     timestamp: new Date().toISOString()
   });
 });
