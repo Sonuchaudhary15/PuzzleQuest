@@ -290,22 +290,45 @@
       </div>
     </section>
 
-    <!-- 7. SCREEN: LEADERBOARD -->
+        <!-- 7. SCREEN: ADVANCED LEADERBOARD -->
     <section id="screen-leaderboard" class="screen-view">
       <div class="world-map-header">
         <h2 class="map-title">HALL OF GLORY</h2>
-        <p class="map-subtitle">Top adventurers across the realm ranked by verified high scores.</p>
+        <p class="map-subtitle">Top champions across the realm ranked by verified scores, stars, and banana puzzle conquests.</p>
       </div>
 
+      <!-- Logged-in Adventurer's Current Standing -->
+      <div id="leaderboard-my-standing" class="my-standing-banner">
+        <!-- Rendered dynamically by UIManager -->
+      </div>
+
+      <!-- Top 3 Champions Podium -->
+      <div id="leaderboard-podium" class="podium-container">
+        <!-- Rendered dynamically by UIManager -->
+      </div>
+
+      <!-- Multi-Category Sort & Filter Tabs -->
+      <div class="leaderboard-filter-bar">
+        <button class="filter-tab-btn active" data-sort="score">🏆 All-Time High Score</button>
+        <button class="filter-tab-btn" data-sort="stars">⭐ Star Masters</button>
+        <button class="filter-tab-btn" data-sort="levels">🗺️ Realms Conquered</button>
+        <button class="filter-tab-btn" data-sort="banana">🍌 Banana Solvers</button>
+      </div>
+
+      <!-- Detailed Champions Roster Table -->
       <div class="leaderboard-card">
-        <table class="table-custom" aria-label="Global Player Leaderboard">
+        <table class="table-custom table-hover" aria-label="Global Player Leaderboard">
           <thead>
             <tr>
               <th>Rank</th>
               <th>Adventurer</th>
+              <th>Tier</th>
               <th class="text-right">Total Score</th>
-              <th class="text-center">Stars Earned</th>
-              <th class="text-center">Levels Cleared</th>
+              <th class="text-center">Stars</th>
+              <th class="text-center">Realms</th>
+              <th class="text-center">🍌 Solved</th>
+              <th class="text-center">Max Combo</th>
+              <th class="text-center">Dossier</th>
             </tr>
           </thead>
           <tbody id="leaderboard-rows">
@@ -453,6 +476,19 @@
         Welcome to PuzzleQuest! Match 3 or more crystals. Match blue Sapphires to channel Echo Energy and awaken the Ancient Echo Board on the right!
       </div>
       <button id="btn-close-tutorial" class="btn btn-gold">Begin Trial</button>
+    </div>
+  </div>
+
+    <!-- ==================== ADVENTURER DOSSIER MODAL ==================== -->
+  <div id="modal-dossier" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="dossier-modal-title">
+    <div class="modal-content dossier-modal-content">
+      <div class="dossier-header-bar">
+        <h3 id="dossier-modal-title" class="modal-title" style="margin: 0; color: #14532d;">ADVENTURER DOSSIER</h3>
+        <button id="btn-close-dossier" class="btn-icon" aria-label="Close Dossier" style="border: none; background: transparent; font-size: 1.5rem; cursor: pointer;">&times;</button>
+      </div>
+      <div id="dossier-body">
+        <!-- Populated dynamically by UIManager -->
+      </div>
     </div>
   </div>
 

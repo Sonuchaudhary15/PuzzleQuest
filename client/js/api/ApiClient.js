@@ -1,16 +1,59 @@
 /**
- * ApiClient - REST API Client for Interoperability & Virtual Identity
+ * ApiClient.js - REST API Client for Backend Services
  * 
- * Handles JWT authentication, player profile sync, progress persistence,
- * relic crafting transactions, and proxy calls to the Banana API.
+ * Handles client-side HTTP communication for:
+ * - Authentication (JWT login & register)
+ * - Game progress & validation submission
+ * - Relic crafting & inventory persistence
+ * - Online leaderboard rankings
+ * - Banana API challenge proxy requests
  */
 class ApiClient {
   constructor(baseUrl = '') {
     this.baseUrl = baseUrl;
-    this.tokenKey = 'puzzlequest_token';
-    this.userKey = 'puzzlequest_user';
-    this.token = typeof localStorage !== 'undefined' ? localStorage.getItem(this.tokenKey) : null;
-    this.currentUser = typeof localStorage !== 'undefined' ? JSON.parse(localStorage.getItem(this.userKey) || 'null') : null;
+    this.token = null;
+    this.currentUser = null;
+
+    this.restoreSession();
+  }
+
+  restoreSession() {
+    try {
+      const storedToken = localStorage.getItem('pq_jwt_token');
+      const storedUser = localStorage.getItem('pq_user_profile');
+      if (storedToken && storedUser) {
+        this.token = storedToken;
+        this.currentUser = JSON.parse(storedUser);
+      }
+    } catch (err) {
+      console.warn('[ApiClient] Failed to restore session from localStorage:', err);
+    }
+  }
+
+  setSession(token, user) {
+    this.token = token;
+    this.currentUser = user;
+    try {
+      localStorage.setItem('pq_jwt_token', token);
+      localStorage.setItem('pq_user_profile', JSON.stringify(user));
+    } catch (err) {
+      console.warn('[ApiClient] Failed to persist session:', err);
+    }
+  }
+
+  clearSession() {
+    this.token = null;
+    this.currentUser = null;
+    try {
+      localStorage.removeItem('pq_jwt_token');
+      localStorage.removeItem('pq_user_profile');
+    } catch (err) {
+      console.warn('[ApiClient] Failed to clear session:', err);
+    }
+  }
+
+  isAuthenticated() {
+    return !!this.token;
   }
 
   getHeaders() {
@@ -21,32 +64,10 @@ class ApiClient {
     return headers;
   }
 
-  setSession(token, user) {
-    this.token = token;
-    this.currentUser = user;
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(this.tokenKey, token);
-      localStorage.setItem(this.userKey, JSON.stringify(user));
-    }
-  }
-
-  clearSession() {
-    this.token = null;
-    this.currentUser = null;
-    if (typeof localStorage !== 'undefined') {
-      localStorage.removeItem(this.tokenKey);
-      localStorage.removeItem(this.userKey);
-    }
-  }
-
-  isAuthenticated() {
-    return !!this.token;
-  }
-
   /**
-   * Register a new player account
+   * User Registration
    */
-  async register(username, password, adventurerTitle = 'Crystal Seeker') {
+  async register(username, password, adventurerTitle) {
     try {
       const res = await fetch(`${this.baseUrl}/api/auth/register`, {
         method: 'POST',
@@ -63,7 +84,7 @@ class ApiClient {
   }
 
   /**
-   * Log into existing account
+   * User Login
    */
   async login(username, password) {
     try {
@@ -82,53 +103,19 @@ class ApiClient {
   }
 
   /**
-   * Fetch current authenticated player profile
+   * Fetch user profile
    */
   async getProfile() {
-    if (!this.token) return { success: false, error: 'Not authenticated' };
     try {
-      const res = await fetch(`${this.baseUrl}/api/auth/me`, {
+      const res = await fetch(`${this.baseUrl}/api/auth/profile`, {
         headers: this.getHeaders()
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to fetch profile');
-      this.currentUser = data.user;
-      localStorage.setItem(this.userKey, JSON.stringify(data.user));
-      return { success: true, user: data.user, progress: data.progress, inventory: data.inventory };
-    } catch (err) {
-      return { success: false, error: err.message };
-    }
-  }
-
-  /**
-   * Get all adventure level definitions
-   */
-  async getLevels() {
-    try {
-      const res = await fetch(`${this.baseUrl}/api/game/levels`);
-      if (!res.ok) throw new Error('Failed to load levels from server');
-      return await res.json();
-    } catch (err) {
-      // Fallback to client-side levels if server call fails
-      return { regions: window.REGIONS, levels: window.LEVELS };
-    }
-  }
-
-  /**
-   * Submit completed level results to server for anti-tamper verification & reward saving
-   */
-  async submitLevelComplete(levelData) {
-    if (!this.token) {
-      return { success: true, offline: true, message: 'Played as Guest. Progress not saved online.' };
-    }
-    try {
-      const res = await fetch(`${this.baseUrl}/api/game/complete-level`, {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify(levelData)
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to save progress');
+      if (data.user) {
+        this.currentUser = data.user;
+        localStorage.setItem('pq_user_profile', JSON.stringify(data.user));
+      }
       return { success: true, ...data };
     } catch (err) {
       return { success: false, error: err.message };
@@ -136,12 +123,59 @@ class ApiClient {
   }
 
   /**
-   * Craft a relic via server validation
+   * Submit completed level with anti-cheat validation token
+   */
+  async submitLevelComplete(levelPayload) {
+    try {
+      const res = await fetch(`${this.baseUrl}/api/game/complete-level`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify(levelPayload)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Validation submission failed');
+      return { success: true, ...data };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  }
+
+  /**
+   * Fetch player's saved campaign progress
+   */
+  async getProgress() {
+    try {
+      const res = await fetch(`${this.baseUrl}/api/game/progress`, {
+        headers: this.getHeaders()
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load progress');
+      return { success: true, ...data };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  }
+
+  /**
+   * Fetch player's saved relic inventory & fragments
+   */
+  async getRelics() {
+    try {
+      const res = await fetch(`${this.baseUrl}/api/relics`, {
+        headers: this.getHeaders()
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load relics');
+      return { success: true, ...data };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  }
+
+  /**
+   * Craft a relic via server-persisted inventory
    */
   async craftRelic(relicType) {
-    if (!this.token) {
-      return { success: false, error: 'Log in to craft and preserve relics!' };
-    }
     try {
       const res = await fetch(`${this.baseUrl}/api/relics/craft`, {
         method: 'POST',
@@ -157,15 +191,32 @@ class ApiClient {
   }
 
   /**
-   * Fetch online leaderboard
+   * Fetch online leaderboard with sorting support
    */
-  async getLeaderboard(limit = 20) {
+  async getLeaderboard(limit = 25, sortBy = 'score') {
     try {
-      const res = await fetch(`${this.baseUrl}/api/leaderboard?limit=${limit}`);
+      const res = await fetch(`${this.baseUrl}/api/leaderboard?limit=${limit}&sortBy=${sortBy}`, {
+        headers: this.getHeaders()
+      });
       if (!res.ok) throw new Error('Failed to load leaderboard');
       return await res.json();
     } catch (err) {
       return { success: false, error: err.message, entries: [] };
+    }
+  }
+
+  /**
+   * Inspect detailed adventurer dossier
+   */
+  async getAdventurerDossier(username) {
+    try {
+      const res = await fetch(`${this.baseUrl}/api/leaderboard/dossier/${encodeURIComponent(username)}`, {
+        headers: this.getHeaders()
+      });
+      if (!res.ok) throw new Error('Failed to load adventurer dossier');
+      return await res.json();
+    } catch (err) {
+      return { success: false, error: err.message };
     }
   }
 
@@ -178,20 +229,17 @@ class ApiClient {
         headers: this.getHeaders()
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Banana API challenge unavailable');
-      return { success: true, ...data };
+      if (!res.ok) throw new Error(data.error || 'Failed to summon Banana API puzzle');
+      return data;
     } catch (err) {
-      return { 
-        success: false, 
-        error: err.message || 'External Banana API service is currently unreachable.' 
-      };
+      return { success: false, error: err.message };
     }
   }
 
   /**
-   * Submit answer for Mystery Challenge
+   * Verify solution for external Banana challenge
    */
-  async submitBananaAnswer(challengeId, answer) {
+  async verifyBananaAnswer(challengeId, answer) {
     try {
       const res = await fetch(`${this.baseUrl}/api/banana/verify`, {
         method: 'POST',
@@ -199,8 +247,8 @@ class ApiClient {
         body: JSON.stringify({ challengeId, answer })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Answer verification failed');
-      return { success: true, ...data };
+      if (!res.ok) throw new Error(data.error || 'Verification failed');
+      return data;
     } catch (err) {
       return { success: false, error: err.message };
     }
