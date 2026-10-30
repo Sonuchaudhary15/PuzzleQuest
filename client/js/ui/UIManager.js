@@ -582,42 +582,249 @@ class UIManager {
     if (balanceEl) balanceEl.textContent = fragments;
   }
 
-  /**
-   * Online Leaderboard
+    /**
+   * Online Advanced Leaderboard & Dossier System
    */
-  async loadLeaderboard() {
+  async loadLeaderboard(sortBy = 'score') {
     if (!this.apiClient.isAuthenticated()) {
       this.screenManager.showToast('Please sign in or register to view the Global Leaderboard!', 'warning', 3500);
       this.screenManager.showScreen('auth');
       return;
     }
     if (!this.leaderboardBody) return;
-    this.leaderboardBody.innerHTML = '<tr><td colspan="5" class="text-center">Loading realm champions...</td></tr>';
 
-    const result = await this.apiClient.getLeaderboard(20);
+    // Update active tab buttons
+    document.querySelectorAll('.filter-tab-btn').forEach(btn => {
+      if (btn.dataset.sort === sortBy) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+
+    this.leaderboardBody.innerHTML = '<tr><td colspan="9" class="text-center" style="padding: 30px;">Loading realm champions...</td></tr>';
+
+    const result = await this.apiClient.getLeaderboard(25, sortBy);
     if (!result.success || !result.entries || result.entries.length === 0) {
-      this.leaderboardBody.innerHTML = '<tr><td colspan="5" class="text-center">No champions recorded yet. Play a level to claim rank #1!</td></tr>';
+      this.leaderboardBody.innerHTML = '<tr><td colspan="9" class="text-center" style="padding: 30px;">No champions recorded yet. Play a level to claim rank #1!</td></tr>';
       return;
     }
 
+    const entries = result.entries;
+    const currentUsername = this.apiClient.currentUser?.username?.toLowerCase();
+
+    // 1. Render Top 3 Champions Podium
+    const podiumEl = document.getElementById('leaderboard-podium');
+    if (podiumEl) {
+      podiumEl.innerHTML = '';
+      const top3 = entries.slice(0, 3);
+      // Order podium visually: 2nd (left), 1st (center, tallest), 3rd (right)
+      const podiumOrder = [];
+      if (top3[1]) podiumOrder.push({ ...top3[1], place: 2, badge: '🥈 2nd', class: 'second' });
+      if (top3[0]) podiumOrder.push({ ...top3[0], place: 1, badge: '👑 1st Champion', class: 'first' });
+      if (top3[2]) podiumOrder.push({ ...top3[2], place: 3, badge: '🥉 3rd', class: 'third' });
+
+      podiumOrder.forEach(champ => {
+        const card = document.createElement('div');
+        card.className = `podium-card ${champ.class}`;
+        card.innerHTML = `
+          <div class="podium-crown">${champ.place === 1 ? '👑' : champ.place === 2 ? '🥈' : '🥉'}</div>
+          <div class="podium-avatar">${champ.avatar || '🧙‍♂️'}</div>
+          <div class="podium-name">${champ.username}</div>
+          <div class="podium-title">${champ.title || 'Crystal Seeker'}</div>
+          <span class="badge ${champ.tier === 'Grand Master' ? 'badge-gold' : 'badge-success'}">${champ.tier || 'Novice'}</span>
+          <div class="podium-score">${champ.totalScore.toLocaleString()} <small>pts</small></div>
+          <div class="podium-stats">
+            <span>⭐ ${champ.totalStars}</span> • <span>🗺️ Lvl ${champ.levelsCleared}</span> • <span>🍌 ${champ.bananaSolved || 0}</span>
+          </div>
+          <button class="btn btn-outline btn-xs" style="margin-top: 10px;">Inspect Dossier</button>
+        `;
+        card.querySelector('button').addEventListener('click', () => this.openAdventurerDossier(champ));
+        podiumEl.appendChild(card);
+      });
+    }
+
+    // 2. Render Logged-in Adventurer's Standing Banner
+    const myStandingEl = document.getElementById('leaderboard-my-standing');
+    if (myStandingEl) {
+      const myIndex = entries.findIndex(e => e.username.toLowerCase() === currentUsername);
+      if (myIndex !== -1) {
+        const me = entries[myIndex];
+        const ahead = myIndex > 0 ? entries[myIndex - 1] : null;
+        const gapText = ahead ? `(${(ahead.totalScore - me.totalScore).toLocaleString()} pts behind #${ahead.rank} ${ahead.username})` : '🏆 Realm Champion #1!';
+        myStandingEl.innerHTML = `
+          <div class="standing-content">
+            <div class="standing-left">
+              <span class="standing-rank-badge">Your Rank: #${me.rank}</span>
+              <span class="standing-user">🛡️ ${me.username}</span>
+              <span class="badge badge-success">${me.tier}</span>
+            </div>
+            <div class="standing-stats">
+              <span><strong>${me.totalScore.toLocaleString()}</strong> pts</span>
+              <span>⭐ <strong>${me.totalStars}</strong> stars</span>
+              <span>🗺️ <strong>${me.levelsCleared}</strong> realms</span>
+              <span class="standing-gap text-muted">${gapText}</span>
+            </div>
+          </div>
+        `;
+        myStandingEl.style.display = 'block';
+      } else {
+        myStandingEl.innerHTML = `
+          <div class="standing-content" style="justify-content: center;">
+            <span>Complete levels on the Adventure Map to claim your verified rank on the leaderboard!</span>
+          </div>
+        `;
+        myStandingEl.style.display = 'block';
+      }
+    }
+
+    // 3. Render Table Rows
     this.leaderboardBody.innerHTML = '';
-    result.entries.forEach((entry, idx) => {
+    entries.forEach((entry, idx) => {
       const row = document.createElement('tr');
-      const isTop3 = idx < 3;
-      const rankBadge = isTop3 ? ['🥇', '🥈', '🥉'][idx] : `#${idx + 1}`;
+      const isMe = entry.username.toLowerCase() === currentUsername;
+      if (isMe) row.classList.add('table-row-active-user');
+
+      const rankBadge = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${entry.rank}`;
+      const tierClass = entry.tier === 'Grand Master' ? 'tier-grand-master' : entry.tier === 'Adept Conjurer' ? 'tier-adept' : 'tier-scholar';
 
       row.innerHTML = `
-        <td class="font-bold">${rankBadge}</td>
+        <td class="font-bold text-center">${rankBadge}</td>
         <td>
-          <div class="player-entry-name">${entry.username}</div>
-          <div class="player-entry-title text-muted">${entry.title || 'Crystal Seeker'}</div>
+          <div class="adventurer-cell">
+            <span class="adventurer-avatar">${entry.avatar || '🧙‍♂️'}</span>
+            <div>
+              <div class="player-entry-name ${isMe ? 'text-primary font-bold' : ''}">
+                ${entry.username} ${isMe ? '<span class="badge badge-xs badge-primary">You</span>' : ''}
+              </div>
+              <div class="player-entry-title text-muted">${entry.title || 'Crystal Seeker'}</div>
+            </div>
+          </div>
         </td>
-        <td class="text-right font-bold text-accent">${entry.totalScore.toLocaleString()}</td>
-        <td class="text-center">★ ${entry.totalStars || 0}</td>
-        <td class="text-center">${entry.levelsCleared || 0}</td>
+        <td><span class="badge ${tierClass}">${entry.tier || 'Novice'}</span></td>
+        <td class="text-right font-bold text-accent">${entry.totalScore.toLocaleString()} <small>pts</small></td>
+        <td class="text-center font-bold">⭐ ${entry.totalStars || 0}</td>
+        <td class="text-center">🗺️ ${entry.levelsCleared || 0}</td>
+        <td class="text-center">🍌 ${entry.bananaSolved || 0}</td>
+        <td class="text-center text-muted">⚡ x${entry.highestCombo || 4}</td>
+        <td class="text-center">
+          <button class="btn btn-outline btn-xs btn-inspect-dossier" data-user="${entry.username}">Inspect</button>
+        </td>
       `;
+
+      row.querySelector('.btn-inspect-dossier').addEventListener('click', () => {
+        this.openAdventurerDossier(entry);
+      });
+
       this.leaderboardBody.appendChild(row);
     });
+
+    // Wire filter tabs
+    document.querySelectorAll('.filter-tab-btn').forEach(btn => {
+      btn.onclick = (e) => {
+        const sort = e.target.dataset.sort;
+        this.loadLeaderboard(sort);
+      };
+    });
+  }
+
+  /**
+   * Open Adventurer Dossier Inspector Modal
+   */
+  openAdventurerDossier(adventurer) {
+    const modal = document.getElementById('modal-dossier');
+    const body = document.getElementById('dossier-body');
+    const closeBtn = document.getElementById('btn-close-dossier');
+    if (!modal || !body) return;
+
+    body.innerHTML = `
+      <div class="dossier-top">
+        <div class="dossier-avatar-hero">${adventurer.avatar || '🧙‍♂️'}</div>
+        <div class="dossier-hero-info">
+          <h2 class="dossier-name">${adventurer.username}</h2>
+          <div class="dossier-subtitle">${adventurer.title || 'Crystal Seeker'} • <span class="badge badge-gold">${adventurer.tier || 'Novice'}</span></div>
+          <div class="dossier-enlisted text-muted">Enlisted in Realm: ${adventurer.joinedAt || '2026-10-28'} • Verified Rank: #${adventurer.rank || 1}</div>
+        </div>
+      </div>
+
+      <div class="dossier-stats-grid">
+        <div class="dossier-stat-card">
+          <div class="dossier-stat-icon">🏆</div>
+          <div class="dossier-stat-val">${adventurer.totalScore.toLocaleString()}</div>
+          <div class="dossier-stat-lbl">Campaign Score</div>
+        </div>
+        <div class="dossier-stat-card">
+          <div class="dossier-stat-icon">⭐</div>
+          <div class="dossier-stat-val">${adventurer.totalStars}</div>
+          <div class="dossier-stat-lbl">Stars Mastered</div>
+        </div>
+        <div class="dossier-stat-card">
+          <div class="dossier-stat-icon">🗺️</div>
+          <div class="dossier-stat-val">${adventurer.levelsCleared}</div>
+          <div class="dossier-stat-lbl">Realms Conquered</div>
+        </div>
+        <div class="dossier-stat-card">
+          <div class="dossier-stat-icon">🍌</div>
+          <div class="dossier-stat-val">${adventurer.bananaSolved || 0}</div>
+          <div class="dossier-stat-lbl">Banana Puzzles Solved</div>
+        </div>
+        <div class="dossier-stat-card">
+          <div class="dossier-stat-icon">⚡</div>
+          <div class="dossier-stat-val">x${adventurer.highestCombo || 4}</div>
+          <div class="dossier-stat-lbl">Max Cascade Combo</div>
+        </div>
+        <div class="dossier-stat-card">
+          <div class="dossier-stat-icon">💎</div>
+          <div class="dossier-stat-val">${adventurer.relicFragments || 50}</div>
+          <div class="dossier-stat-lbl">Relic Fragments</div>
+        </div>
+      </div>
+
+      <div class="dossier-section-title">Arcane Masteries & Achievements</div>
+      <div class="dossier-achievements-row">
+        <div class="achievement-pill ${adventurer.totalStars >= 10 ? 'achieved' : 'locked'}">
+          <span class="ach-icon">⭐</span>
+          <div>
+            <div class="ach-name">Starlight Adept</div>
+            <div class="ach-sub">Earned 10+ Adventure Stars</div>
+          </div>
+        </div>
+        <div class="achievement-pill ${(adventurer.bananaSolved || 0) >= 3 ? 'achieved' : 'locked'}">
+          <span class="ach-icon">🍌</span>
+          <div>
+            <div class="ach-name">Banana API Scholar</div>
+            <div class="ach-sub">Solved external mystery equations</div>
+          </div>
+        </div>
+        <div class="achievement-pill ${(adventurer.highestCombo || 0) >= 4 ? 'achieved' : 'locked'}">
+          <span class="ach-icon">⚡</span>
+          <div>
+            <div class="ach-name">Cascade Weaver</div>
+            <div class="ach-sub">Triggered 4x combo reaction</div>
+          </div>
+        </div>
+        <div class="achievement-pill achieved">
+          <span class="ach-icon">🛡️</span>
+          <div>
+            <div class="ach-name">Verified Identity</div>
+            <div class="ach-sub">Secured via Bcrypt + JWT token</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 20px; text-align: center;">
+        <button id="btn-close-dossier-action" class="btn btn-secondary">Close Dossier</button>
+      </div>
+    `;
+
+    modal.classList.add('modal-open');
+
+    const closeModal = () => modal.classList.remove('modal-open');
+    closeBtn.onclick = closeModal;
+    document.getElementById('btn-close-dossier-action').onclick = closeModal;
+    modal.onclick = (e) => {
+      if (e.target === modal) closeModal();
+    };
   }
 
   /**
