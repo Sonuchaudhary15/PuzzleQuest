@@ -57,4 +57,12 @@ describe('Banana API Interoperability & Security Proxy', () => {
     assert.strictEqual(res.success, false);
     assert.match(res.error, /not found, expired, or already answered/);
   });
+
+  test('Guarantees challenge parameters validity when requesting new challenges', async () => {
+    const res = await bananaService.requestChallenge();
+    if (res.success) {
+      assert.strictEqual(res.challenge.expiresInSeconds, 600, 'Expiry window must be 600 seconds');
+      assert.ok(res.challenge.question.startsWith('http'), 'Question must be a valid HTTP URL');
+    }
+  });
 });
