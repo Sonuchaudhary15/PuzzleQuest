@@ -25,8 +25,11 @@ class BoardRenderer {
     this.beams = [];
     this.selectedCoord = null;
     this.hoverCoord = null;
+    this.swipeState = null;
+    this.swipeTriggered = false;
 
     this.initCanvas();
+    this.initSwipeListeners();
     this.bindEvents();
     this.startRenderLoop();
   }
@@ -218,7 +221,8 @@ class BoardRenderer {
             tileEl.classList.add('cursor-target');
           }
 
-          // Interaction listeners
+          // Interaction listeners (Click + Touch/Mouse Swipe)
+          tileEl.addEventListener('pointerdown', (e) => this.handleTilePointerDown(r, c, e));
           tileEl.addEventListener('click', (e) => this.handleTileClick(r, c, e));
           tileEl.addEventListener('mouseenter', () => this.handleTileMouseEnter(r, c));
           tileEl.addEventListener('mouseleave', () => this.handleTileMouseLeave(r, c));
@@ -279,10 +283,99 @@ class BoardRenderer {
     }
   }
 
+    /**
+   * Global pointer gesture listeners for drag & touch swiping
+   */
+  initSwipeListeners() {
+    if (typeof window === 'undefined') return;
+    window.addEventListener('pointermove', (e) => this.handlePointerMove(e), { passive: true });
+    window.addEventListener('pointerup', (e) => this.handlePointerUp(e));
+    window.addEventListener('pointercancel', (e) => this.handlePointerCancel(e));
+  }
+
+  /**
+   * Pointer down on a crystal tile to initiate swipe or click
+   */
+  handleTilePointerDown(r, c, event) {
+    if (!this.gameEngine || this.gameEngine.gameState !== 'PLAYING') return;
+    if (this.gameEngine.mainBoard?.isProcessing) return;
+
+    // Relic targeting uses direct click targeting
+    if (this.gameEngine.relicManager?.activeTargetingRelic) return;
+
+    this.swipeState = {
+      startX: event.clientX,
+      startY: event.clientY,
+      row: r,
+      col: c,
+      pointerId: event.pointerId
+    };
+    this.swipeTriggered = false;
+  }
+
+  /**
+   * Pointer move across board detecting directional swipe gestures
+   */
+  async handlePointerMove(event) {
+    if (!this.swipeState || this.swipeTriggered) return;
+    if (this.swipeState.pointerId !== undefined && event.pointerId !== this.swipeState.pointerId) return;
+    if (this.gameEngine?.mainBoard?.isProcessing) {
+      this.swipeState = null;
+      return;
+    }
+
+    const dx = event.clientX - this.swipeState.startX;
+    const dy = event.clientY - this.swipeState.startY;
+    const distance = Math.hypot(dx, dy);
+
+    // Minimum distance threshold to qualify as an intentional swipe gesture
+    const SWIPE_THRESHOLD = 24;
+
+    if (distance >= SWIPE_THRESHOLD) {
+      const fromR = this.swipeState.row;
+      const fromC = this.swipeState.col;
+      let toR = fromR;
+      let toC = fromC;
+
+      if (Math.abs(dx) > Math.abs(dy)) {
+        // Horizontal swipe (Left / Right)
+        toC += dx > 0 ? 1 : -1;
+      } else {
+        // Vertical swipe (Up / Down)
+        toR += dy > 0 ? 1 : -1;
+      }
+
+      const board = this.gameEngine?.mainBoard;
+      if (board && toR >= 0 && toR < board.rows && toC >= 0 && toC < board.cols) {
+        this.swipeTriggered = true;
+        this.selectedCoord = null;
+        this.clearHighlights();
+
+        // Perform adjacent swap via GameEngine
+        await this.gameEngine.handlePlayerSwap(fromR, fromC, toR, toC);
+      }
+
+      this.swipeState = null;
+    }
+  }
+
+  handlePointerUp(event) {
+    this.swipeState = null;
+  }
+
+  handlePointerCancel(event) {
+    this.swipeState = null;
+  }
+
   /**
    * Handle Main Board Tile Clicks (Selection, Swapping, Relic Target)
    */
   async handleTileClick(r, c, event) {
+    // If this click was part of a completed swipe gesture, suppress click handler
+    if (this.swipeTriggered) {
+      this.swipeTriggered = false;
+      return;
+    }
     if (this.gameEngine.gameState !== 'PLAYING') return;
 
     const relicMgr = this.gameEngine.relicManager;
