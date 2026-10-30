@@ -40,15 +40,21 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Username and password are required.' });
     }
 
-    if (username.trim().length < 3) {
-      return res.status(400).json({ error: 'Username must be at least 3 characters.' });
+    const trimmedUsername = username.trim();
+    if (trimmedUsername.length < 3 || trimmedUsername.length > 20) {
+      return res.status(400).json({ error: 'Username must be between 3 and 20 characters.' });
     }
 
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters.' });
+    if (!/^[a-zA-Z0-9_]+$/.test(trimmedUsername)) {
+      return res.status(400).json({ error: 'Username can only contain letters, numbers, and underscores.' });
     }
 
-    const cleanUsername = username.trim().toLowerCase();
+    if (password.length < 6 || password.length > 64) {
+      return res.status(400).json({ error: 'Password must be between 6 and 64 characters.' });
+    }
+
+    const cleanUsername = trimmedUsername.toLowerCase();
+    const cleanTitle = (adventurerTitle || 'Crystal Seeker').trim().slice(0, 30);
 
     // Check duplicate
     if (isUsingMemoryStore()) {
@@ -62,7 +68,7 @@ router.post('/register', async (req, res) => {
         _id: `mem_user_${Date.now()}`,
         username: cleanUsername,
         password: hashedPassword,
-        adventurerTitle: adventurerTitle || 'Crystal Seeker',
+        adventurerTitle: cleanTitle,
         totalScore: 0,
         totalStars: 0,
         levelsCleared: 0,
