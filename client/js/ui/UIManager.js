@@ -76,6 +76,20 @@ class UIManager {
     this.eventBus.on('relic:used', () => this.updateBattleRelicBar());
     this.eventBus.on('fragments:updated', (data) => this.updateFragmentDisplays(data.fragments));
 
+    // Keyboard accessibility shortcuts
+    if (typeof window !== 'undefined') {
+      window.addEventListener('keydown', (e) => {
+        if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
+        if (e.key === 'm' || e.key === 'M') {
+          window.soundManager?.toggleMute();
+        } else if (e.key === 'r' || e.key === 'R') {
+          if (this.gameEngine?.currentLevel && this.gameEngine?.gameState === 'PLAYING') {
+            this.handleReplayLevel();
+          }
+        }
+      });
+    }
+
     // Modal action buttons
     document.getElementById('btn-next-level')?.addEventListener('click', () => this.handleNextLevel());
     document.getElementById('btn-replay-level')?.addEventListener('click', () => this.handleReplayLevel());
