@@ -33,10 +33,14 @@ app.use(express.urlencoded({ extended: true }));
 // Performance monitoring middleware: tracks request latency
 app.use((req, res, next) => {
   const start = Date.now();
-  res.on('finish', () => {
-    const duration = Date.now() - start;
-    res.setHeader('X-Response-Time', `${duration}ms`);
-  });
+  const originalWriteHead = res.writeHead;
+  res.writeHead = function (...args) {
+    if (!res.headersSent) {
+      const duration = Date.now() - start;
+      res.setHeader('X-Response-Time', `${duration}ms`);
+    }
+    return originalWriteHead.apply(this, args);
+  };
   next();
 });
 
