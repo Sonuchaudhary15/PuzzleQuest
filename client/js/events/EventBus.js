@@ -8,6 +8,8 @@
 class EventBus {
   constructor() {
     this.listeners = new Map();
+    this.history = [];
+    this.maxHistorySize = 50;
   }
 
   /**
@@ -59,6 +61,12 @@ class EventBus {
    * @param {*} data - Payload passed to handlers
    */
   emit(event, data) {
+    // Record event in telemetry ring buffer
+    this.history.push({ event, data, timestamp: Date.now() });
+    if (this.history.length > this.maxHistorySize) {
+      this.history.shift();
+    }
+
     if (this.listeners.has(event)) {
       this.listeners.get(event).forEach(callback => {
         try {
@@ -71,10 +79,25 @@ class EventBus {
   }
 
   /**
+   * Return recent event history snapshots
+   */
+  getHistory() {
+    return [...this.history];
+  }
+
+  /**
+   * Clear event history buffer
+   */
+  clearHistory() {
+    this.history = [];
+  }
+
+  /**
    * Clear all listeners (useful for test resets and level teardowns)
    */
   clear() {
     this.listeners.clear();
+    this.history = [];
   }
 }
 
