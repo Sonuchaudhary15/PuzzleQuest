@@ -35,6 +35,7 @@ class GameEngine {
     // Audit logs for server-side validation
     this.moveHistory = [];
     this.startedAt = null;
+    this.maxComboStreak = 0;
 
     this.bindEvents();
   }
@@ -44,7 +45,14 @@ class GameEngine {
 
     // Listen to matches detected
     this.eventBus.on('match:detected', (data) => {
-      this.score += data.scoreGained;
+      // Calculate cascade streak bonus multiplier
+      const comboMultiplier = Math.max(1, (data.combo || 1));
+      const streakBonus = comboMultiplier > 1 ? (comboMultiplier - 1) * 25 : 0;
+      const totalScoreGained = data.scoreGained + streakBonus;
+      this.score += totalScoreGained;
+      if (comboMultiplier > this.maxComboStreak) {
+        this.maxComboStreak = comboMultiplier;
+      }
 
       // Update gem collection objective
       if (this.currentLevel && this.mainObjective) {
@@ -57,8 +65,9 @@ class GameEngine {
 
       this.eventBus.emit('score:updated', {
         score: this.score,
-        gained: data.scoreGained,
-        combo: data.combo
+        gained: totalScoreGained,
+        combo: data.combo,
+        streakBonus: streakBonus
       });
 
       this.eventBus.emit('objective:updated', {
@@ -106,6 +115,7 @@ class GameEngine {
     this.gameState = 'PLAYING';
     this.moveHistory = [];
     this.startedAt = Date.now();
+    this.maxComboStreak = 0;
 
     // Setup objectives
     this.mainObjective = {
