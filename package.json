@@ -1,0 +1,31 @@
+{
+  "name": "puzzlequest",
+  "version": "1.0.0",
+  "description": "PuzzleQuest: A Strategy-Based Match-Three Adventure with Echo Board, Relic Crafting, and Banana API Integration",
+  "main": "server/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "node --watch server/server.js",
+    "test": "node --test tests/auth.test.js tests/bananaProxy.test.js tests/echoBoard.test.js tests/matchEngine.test.js tests/relicCrafting.test.js tests/validation.test.js",
+    "test:watch": "node --test --watch tests/auth.test.js tests/bananaProxy.test.js tests/echoBoard.test.js tests/matchEngine.test.js tests/relicCrafting.test.js tests/validation.test.js"
+  },
+  "keywords": [
+    "match-3",
+    "puzzle-game",
+    "echo-board",
+    "banana-api",
+    "enterprise-software",
+    "event-driven"
+  ],
+  "author": "University of Bedfordshire - Software for Enterprise",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.9.5"
+  }
+}

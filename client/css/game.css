@@ -1,0 +1,541 @@
+/* ==========================================================================
+   PuzzleQuest - Dual-Board Game Interface & Crystal Styling
+   Light Green & White Theme: Emerald Grid, Frosty Rune Conduits
+   ========================================================================== */
+
+.game-arena-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* In-Game Top HUD */
+.game-hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 14px 24px;
+  box-shadow: 0 4px 20px rgba(10, 60, 40, 0.06);
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.hud-level-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hud-level-title {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  color: #064e3b;
+}
+
+.hud-badges-wrap {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.hud-stats-group {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+
+.hud-stat-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.hud-stat-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 1px;
+}
+
+.hud-stat-value {
+  font-family: var(--font-heading);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.hud-moves-value {
+  color: var(--color-forest);
+}
+
+.hud-moves-value.hud-critical {
+  color: var(--color-ruby);
+  animation: pulseCritical 0.8s infinite;
+}
+
+@keyframes pulseCritical {
+  0%, 100% { transform: scale(1); text-shadow: 0 0 10px rgba(225, 29, 72, 0.6); }
+  50% { transform: scale(1.15); text-shadow: 0 0 20px rgba(225, 29, 72, 0.9); }
+}
+
+.hud-objectives-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: rgba(240, 253, 244, 0.95);
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.goal-item {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #064e3b;
+}
+
+.hud-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Dual Boards Layout */
+.boards-stage-wrap {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 24px;
+  align-items: start;
+}
+
+/* Canvas Overlay for Echo Beam & Particles */
+#fx-overlay-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 20;
+}
+
+/* Main Board Column */
+.main-board-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.board-card {
+  background: #ffffff;
+  border: 1.5px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  box-shadow: 0 8px 25px rgba(10, 60, 40, 0.07);
+  width: 100%;
+  max-width: 620px;
+}
+
+.board-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.board-title {
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+  letter-spacing: 1px;
+  color: #064e3b;
+}
+
+/* Match-Three Grid */
+.game-grid {
+  display: grid;
+  gap: 6px;
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  background: linear-gradient(135deg, #eaf8f0 0%, #dbf3e5 100%);
+  padding: 10px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid rgba(16, 185, 129, 0.3);
+  box-shadow: inset 0 2px 8px rgba(10, 60, 40, 0.05);
+}
+
+.game-tile-cell {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Crystal Tiles */
+.crystal-tile {
+  width: 90%;
+  height: 90%;
+  border-radius: 20%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  transition: transform 0.14s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.14s ease, opacity 0.18s ease;
+  position: relative;
+  will-change: transform;
+}
+
+.crystal-tile:hover {
+  transform: scale(1.1) translateY(-2px);
+  z-index: 5;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+}
+
+.crystal-tile:active {
+  transform: scale(0.95);
+  transition-duration: 0.08s;
+}
+
+.crystal-tile.selected {
+  transform: scale(1.16) translateY(-3px);
+  box-shadow: 0 0 18px #10b981, 0 0 35px rgba(16, 185, 129, 0.6), 0 8px 20px rgba(0,0,0,0.15);
+  z-index: 10;
+  animation: selectedPulse 1.0s infinite ease-in-out;
+}
+
+@keyframes selectedPulse {
+  0%, 100% { box-shadow: 0 0 14px #10b981, 0 0 28px rgba(16, 185, 129, 0.45), 0 8px 20px rgba(0,0,0,0.12); }
+  50% { box-shadow: 0 0 22px #059669, 0 0 40px rgba(16, 185, 129, 0.75), 0 10px 24px rgba(0,0,0,0.18); }
+}
+
+/* === SMOOTH GAMEPLAY ANIMATION CLASSES === */
+
+/* Match-3 explosion: tile pops and vanishes */
+.crystal-tile.tile-matched {
+  animation: tileMatchPop 0.25s cubic-bezier(0.36, 0.07, 0.19, 0.97) forwards;
+  pointer-events: none;
+}
+
+@keyframes tileMatchPop {
+  0%   { transform: scale(1); opacity: 1; }
+  40%  { transform: scale(1.35) rotate(6deg); opacity: 0.9; }
+  100% { transform: scale(0) rotate(-12deg); opacity: 0; }
+}
+
+/* Swap animation: brief bounce to destination */
+.crystal-tile.tile-swapping {
+  animation: tileSwapBounce 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes tileSwapBounce {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+/* Invalid swap: shake to indicate error */
+.crystal-tile.tile-invalid-swap {
+  animation: tileInvalidShake 0.32s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+@keyframes tileInvalidShake {
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(3px); }
+  30%, 50%, 70% { transform: translateX(-3px); }
+  40%, 60% { transform: translateX(3px); }
+  100% { transform: translateX(0); }
+}
+
+/* New tile drop-in from above */
+.crystal-tile.tile-drop-in {
+  animation: tileDropIn 0.28s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes tileDropIn {
+  0%   { transform: scale(0.6) translateY(-30px); opacity: 0; }
+  70%  { transform: scale(1.05) translateY(2px); opacity: 1; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+/* Cascade drop: existing tiles falling down */
+.crystal-tile.tile-cascade-drop {
+  animation: tileCascadeDrop 0.22s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes tileCascadeDrop {
+  0%   { transform: translateY(-12px); }
+  60%  { transform: translateY(3px); }
+  100% { transform: translateY(0); }
+}
+
+/* Echo energy beam trigger: tile glows sapphire */
+.crystal-tile.echo-triggered {
+  animation: echoTriggerGlow 0.4s ease-out forwards;
+}
+
+@keyframes echoTriggerGlow {
+  0%   { box-shadow: 0 0 8px #0284c7; }
+  50%  { box-shadow: 0 0 30px #38bdf8, 0 0 50px rgba(2, 132, 199, 0.6); transform: scale(1.12); }
+  100% { box-shadow: 0 0 6px #0284c7; transform: scale(1); }
+}
+
+/* Tile combo glow (for chain reactions) */
+.crystal-tile.combo-glow {
+  animation: comboGlow 0.35s ease-in-out forwards;
+}
+
+@keyframes comboGlow {
+  0%   { filter: brightness(1); }
+  50%  { filter: brightness(1.8) saturate(1.5); transform: scale(1.1); }
+  100% { filter: brightness(1); transform: scale(1); }
+}
+
+.crystal-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 20%;
+  background: radial-gradient(circle at 35% 30%, var(--crystal-secondary), var(--crystal-color));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.7), inset 0 -3px 6px rgba(0, 0, 0, 0.4), 0 4px 10px rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.crystal-symbol {
+  font-size: 1.4rem;
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+}
+
+/* Specific Crystal Color Types */
+.crystal-ruby {
+  filter: drop-shadow(0 0 6px rgba(225, 29, 72, 0.4));
+}
+.crystal-sapphire {
+  filter: drop-shadow(0 0 8px rgba(2, 132, 199, 0.5));
+}
+.crystal-emerald {
+  filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.6));
+}
+.crystal-amethyst {
+  filter: drop-shadow(0 0 6px rgba(139, 92, 246, 0.4));
+}
+.crystal-topaz {
+  filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.4));
+}
+
+/* Relic Target Highlights */
+.target-highlight-row {
+  box-shadow: 0 0 18px var(--color-topaz) !important;
+  border: 2px solid var(--color-topaz);
+  transform: scale(1.05);
+}
+
+.target-highlight-area {
+  box-shadow: 0 0 18px var(--color-ruby) !important;
+  border: 2px solid var(--color-ruby);
+  transform: scale(1.05);
+}
+
+.cursor-target {
+  cursor: crosshair !important;
+}
+
+/* Connected Echo Board Column */
+.echo-board-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.echo-board-card {
+  background: #ffffff;
+  border: 2px solid var(--border-glow);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.1);
+}
+
+.echo-grid {
+  display: grid;
+  gap: 10px;
+  aspect-ratio: 1 / 1;
+  background: linear-gradient(135deg, #eaf8f0 0%, #dbf3e5 100%);
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid rgba(16, 185, 129, 0.3);
+}
+
+.echo-cell {
+  background: #ffffff;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  position: relative;
+  overflow: hidden;
+  transition: all var(--transition-normal);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.echo-cell.echo-state-locked {
+  background: #fff1f2;
+  border-color: rgba(225, 29, 72, 0.35);
+  transition: all 0.3s ease;
+}
+
+.echo-cell.echo-completed {
+  background: #ecfdf5;
+  border-color: var(--color-emerald);
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+}
+
+.echo-conduit-ring {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(240, 253, 244, 0.9);
+  border: 2px solid var(--border-glow);
+}
+
+.echo-rune-glyph {
+  font-size: 1.5rem;
+  color: var(--color-forest);
+  text-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
+}
+
+.echo-barrier-overlay {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  font-size: 0.9rem;
+  filter: drop-shadow(0 0 4px #e11d48);
+}
+
+.echo-energy-bar-wrap {
+  width: 100%;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+
+.echo-energy-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #059669);
+  transition: width 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
+}
+
+.echo-energy-label {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  margin-top: 3px;
+}
+
+.echo-cell.targeting-breaker {
+  border: 2px dashed var(--color-topaz) !important;
+  cursor: pointer;
+  animation: pulseBreaker 0.8s infinite;
+}
+
+@keyframes pulseBreaker {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 10px var(--color-topaz); }
+  50% { transform: scale(1.06); box-shadow: 0 0 20px var(--color-topaz); }
+}
+
+/* In-Battle Relic Bar */
+.relic-battle-bar {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  width: 100%;
+  max-width: 620px;
+}
+
+.relic-battle-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px;
+  background: #ffffff;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  cursor: pointer;
+  position: relative;
+  transition: all var(--transition-fast);
+  box-shadow: 0 2px 8px rgba(10, 60, 40, 0.05);
+}
+
+.relic-battle-btn:hover {
+  background: #ecfdf5;
+  border-color: var(--color-emerald);
+  transform: translateY(-2px);
+}
+
+.relic-btn-icon {
+  font-size: 1.5rem;
+}
+
+.relic-btn-name {
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+  color: #064e3b;
+}
+
+.relic-btn-count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: var(--color-emerald);
+  color: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.relic-disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Responsive Dual Boards */
+@media (max-width: 1024px) {
+  .boards-stage-wrap {
+    grid-template-columns: 1fr;
+  }
+  .echo-board-card {
+    max-width: 620px;
+    margin: 0 auto;
+    width: 100%;
+  }
+}

@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PuzzleQuest: A Strategy-Based Match-Three Adventure</title>
+  <meta name="description" content="A strategy-based match-three browser game featuring connected Echo Board puzzle mechanics, relic fusion crafting, adventure progression, and external Banana API integration.">
+  
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/game.css">
+  <link rel="stylesheet" href="css/map.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+
+  <!-- ==================== APP HEADER ==================== -->
+  <header class="app-header">
+    <div class="brand-container" data-nav-target="home">
+      <div class="brand-gem"></div>
+      <div>
+        <h1 class="brand-title">PUZZLEQUEST</h1>
+        <div class="brand-subtitle">Echo of the Ancients</div>
+      </div>
+    </div>
+
+    <!-- Central Navigation Bar -->
+    <nav class="app-nav" aria-label="Game Navigation">
+      <button class="nav-link nav-active" data-nav-target="home">Home</button>
+      <button class="nav-link" data-nav-target="map">Adventure Map</button>
+      <button class="nav-link" data-nav-target="game">Battle Board</button>
+      <button class="nav-link" data-nav-target="relics">Relic Fusion</button>
+      <button class="nav-link" data-nav-target="banana">Mystery Challenge</button>
+      <button class="nav-link" data-nav-target="leaderboard">Leaderboard</button>
+      <button class="nav-link" data-nav-target="profile">Profile</button>
+      <button class="nav-link" data-nav-target="help">Themes & Help</button>
+    </nav>
+
+    <!-- Header Actions (Sound & Session) -->
+    <div class="header-actions">
+      <button id="btn-toggle-sound" class="btn-icon" title="Toggle Sound">🔊</button>
+      <div id="user-status-badge">
+        <button class="btn btn-outline btn-xs" data-nav-target="auth">Sign In</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==================== MAIN APPLICATION SCREENS ==================== -->
+  <main id="app-viewport">
+
+    <!-- 1. SCREEN: HOME -->
+    <section id="screen-home" class="screen-view active">
+      <div class="hero-banner">
+        <div class="hero-gem-icon"></div>
+        <h2 class="hero-title">A DUAL-BOARD MATCH-THREE ADVENTURE</h2>
+        <p class="hero-lead">
+          Harness the power of ancient crystals. Match gems on the Main Board to channel Echo Energy into the secondary Echo Board, break mystical barrier runes, craft legendary relics, and conquer the realm!
+        </p>
+        <div class="hero-actions">
+          <button id="btn-home-play" class="btn btn-gold btn-lg">Embark on Adventure</button>
+          <button id="btn-home-tutorial" class="btn btn-secondary btn-lg">Tutorial: Echo Board</button>
+        </div>
+      </div>
+
+      <!-- Enterprise Themes Highlights -->
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">⚡</div>
+          <h3 class="feature-title">Connected Echo Board</h3>
+          <p class="feature-desc">
+            A dual-board puzzle mechanic where matching resonant Sapphire crystals transmits live energy across boards to unlock ancient glyphs.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔨</div>
+          <h3 class="feature-title">Relic Fusion System</h3>
+          <p class="feature-desc">
+            Collect crystal fragments from high-combo cascades to forge tactical power-ups: Sunbeam Lance, Rune Breaker, and Astral Bombs.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🍌</div>
+          <h3 class="feature-title">Banana API Integration</h3>
+          <p class="feature-desc">
+            Interoperability with the University of Bedfordshire Banana API. Solve external visual mystery equations to reap bonus rewards.
+          </p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🛡️</div>
+          <h3 class="feature-title">Virtual Identity & Cloud Save</h3>
+          <p class="feature-desc">
+            JWT-based authentication and secure bcrypt password hashing. Compete for rank #1 on the online global leaderboard.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. SCREEN: AUTHENTICATION -->
+    <section id="screen-auth" class="screen-view">
+      <div class="auth-container">
+        <!-- Sign In -->
+        <div class="auth-card">
+          <h2 class="brand-title">Adventurer Sign In</h2>
+          <p class="text-secondary">Enter your credentials to load your saved progress and leaderboard score.</p>
+          <div id="login-error" class="alert alert-danger" style="display: none;"></div>
+          <form id="login-form" class="auth-form">
+            <div class="form-group">
+              <label class="form-label" for="login-username">Username</label>
+              <input id="login-username" class="input-field" type="text" required placeholder="e.g. CrystalMage">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="login-password">Password</label>
+              <input id="login-password" class="input-field" type="password" required placeholder="••••••••">
+            </div>
+            <button type="submit" class="btn btn-primary">Sign In</button>
+          </form>
+        </div>
+
+        <!-- Register -->
+        <div class="auth-card">
+          <h2 class="brand-title">Create Virtual Identity</h2>
+          <p class="text-secondary">Register a new profile to participate in global rankings.</p>
+          <div id="register-error" class="alert alert-danger" style="display: none;"></div>
+          <form id="register-form" class="auth-form">
+            <div class="form-group">
+              <label class="form-label" for="reg-username">Username</label>
+              <input id="reg-username" class="input-field" type="text" required placeholder="Choose a unique name">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="reg-password">Password</label>
+              <input id="reg-password" class="input-field" type="password" required minlength="6" placeholder="At least 6 characters">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="reg-title">Adventurer Title</label>
+              <select id="reg-title" class="input-field">
+                <option value="Crystal Seeker">Crystal Seeker</option>
+                <option value="Arcane Weaver">Arcane Weaver</option>
+                <option value="Rune Scholar">Rune Scholar</option>
+                <option value="Echo Master">Echo Master</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn-gold">Create Account</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. SCREEN: ADVENTURE MAP -->
+    <section id="screen-map" class="screen-view">
+      <div class="world-map-header">
+        <h2 class="map-title">REALM OF RESONANCE</h2>
+        <p class="map-subtitle">Select an unlocked region and stage to begin your trial.</p>
+      </div>
+      <div id="adventure-map-container" class="adventure-map-container">
+        <!-- Rendered dynamically by UIManager -->
+      </div>
+    </section>
+
+    <!-- 4. SCREEN: BATTLE BOARD (MAIN & ECHO BOARDS) -->
+    <section id="screen-game" class="screen-view">
+      <div class="game-arena-container">
+        
+        <!-- Game HUD -->
+        <div class="game-hud">
+          <div class="hud-level-info">
+            <h2 id="hud-level-name" class="hud-level-title">The Resonant Clearing</h2>
+            <div class="hud-badges-wrap">
+              <span id="hud-combo-badge" class="badge badge-warning" style="display: none;">COMBO x2</span>
+              <span id="hud-multiplier-badge" class="badge badge-success" style="display: none;">2.5x Echo</span>
+            </div>
+          </div>
+
+          <div class="hud-stats-group">
+            <div class="hud-stat-box">
+              <span class="hud-stat-label">Moves Left</span>
+              <span id="hud-moves" class="hud-stat-value hud-moves-value">25</span>
+            </div>
+            <div class="hud-stat-box">
+              <span class="hud-stat-label">Score</span>
+              <span id="hud-score" class="hud-stat-value">0</span>
+            </div>
+          </div>
+
+          <!-- Dual Objectives -->
+          <div class="hud-objectives-box">
+            <div id="hud-main-goal" class="goal-item"><span class="goal-icon">🎯</span> Sapphire: 0 / 6</div>
+            <div id="hud-echo-goal" class="goal-item"><span class="goal-icon">⚡</span> Echo Runes: 0 / 1</div>
+          </div>
+
+          <div class="hud-actions">
+            <button id="btn-game-restart" class="btn btn-secondary btn-sm">Restart</button>
+            <button id="btn-game-map" class="btn btn-outline btn-sm">Map</button>
+          </div>
+        </div>
+
+        <!-- Dual Boards Stage -->
+        <div class="boards-stage-wrap">
+          <!-- Canvas Overlay for Echo Beams and Particle FX -->
+          <canvas id="fx-overlay-canvas"></canvas>
+
+          <!-- Main Board Area -->
+          <div class="main-board-column">
+            <div class="board-card">
+              <div class="board-header">
+                <span class="board-title">MAIN CRYSTAL BOARD</span>
+                <span class="text-secondary" style="font-size: 0.8rem;">Swap adjacent gems</span>
+              </div>
+              <div id="main-board-grid" class="game-grid" role="grid" aria-label="Main Match-Three Puzzle Board"></div>
+            </div>
+
+            <!-- In-Battle Relic Tray -->
+            <div id="relic-battle-bar" class="relic-battle-bar">
+              <!-- Dynamically rendered -->
+            </div>
+          </div>
+
+          <!-- Echo Board Area -->
+          <div class="echo-board-column">
+            <div class="echo-board-card">
+              <div class="board-header">
+                <span class="board-title" style="color: var(--color-sapphire);">ECHO BOARD</span>
+                <span class="text-secondary" style="font-size: 0.8rem;">Resonant Conduits</span>
+              </div>
+              <p class="text-secondary" style="font-size: 0.8rem; margin-bottom: 10px;">
+                Matches of <strong>Sapphire</strong> crystals feed energy into these ancient conduits to shatter barrier locks.
+              </p>
+              <div id="echo-board-grid" class="echo-grid" role="grid" aria-label="Connected Echo Board"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 5. SCREEN: RELIC FUSION & INVENTORY -->
+    <section id="screen-relics" class="screen-view">
+      <div class="relics-header">
+        <div>
+          <h2 class="brand-title">RELIC FUSION FORGE</h2>
+          <p class="text-secondary">Combine crystal fragments collected from battles and mystery challenges into arcane relics.</p>
+        </div>
+        <div class="fragment-balance-badge">
+          <span>Relic Fragments:</span>
+          <span id="relic-fragment-balance" class="text-gold">50</span>
+          <span>💎</span>
+        </div>
+      </div>
+
+      <div id="relic-crafting-grid" class="relics-craft-grid">
+        <!-- Rendered by UIManager -->
+      </div>
+    </section>
+
+    <!-- 6. SCREEN: BANANA API MYSTERY CHALLENGE -->
+    <section id="screen-banana" class="screen-view">
+      <div class="banana-challenge-wrap">
+        <div class="feature-icon">🍌</div>
+        <h2 class="brand-title">BANANA MYSTERY CHALLENGE</h2>
+        <p class="text-secondary">
+          Integrated with the University of Bedfordshire Banana API. Inspect the visual puzzle equation, calculate the missing value, and submit your answer to harvest bonus points and relic fragments!
+        </p>
+
+        <div style="margin: 20px 0;">
+          <button id="btn-load-banana-challenge" class="btn btn-gold">Summon Mystery Challenge</button>
+        </div>
+
+        <div id="banana-loading" style="display: none; padding: 20px;">
+          <div class="brand-gem" style="margin: 0 auto 12px;"></div>
+          <p class="text-secondary">Contacting University Banana API service...</p>
+        </div>
+
+        <div id="banana-error-notice" class="alert alert-danger" style="display: none;"></div>
+        <div id="banana-reward-notice" class="alert alert-success" style="display: none;"></div>
+
+        <!-- Puzzle Area -->
+        <div id="banana-challenge-area" style="display: none;">
+          <div class="banana-puzzle-image-box">
+            <img id="banana-puzzle-image" alt="University Banana Puzzle Equation" src="">
+          </div>
+          <form id="banana-verify-form">
+            <div class="form-group" style="max-width: 300px; margin: 0 auto;">
+              <label class="form-label" for="banana-answer-input">Enter Solution (Numeric Answer):</label>
+              <div class="banana-input-group">
+                <input id="banana-answer-input" class="input-field" type="number" min="0" max="99" required placeholder="?">
+                <button id="btn-submit-banana-answer" type="submit" class="btn btn-primary">Submit Answer</button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. SCREEN: LEADERBOARD -->
+    <section id="screen-leaderboard" class="screen-view">
+      <div class="world-map-header">
+        <h2 class="map-title">HALL OF GLORY</h2>
+        <p class="map-subtitle">Top adventurers across the realm ranked by verified high scores.</p>
+      </div>
+
+      <div class="leaderboard-card">
+        <table class="table-custom" aria-label="Global Player Leaderboard">
+          <thead>
+            <tr>
+              <th>Rank</th>
+              <th>Adventurer</th>
+              <th class="text-right">Total Score</th>
+              <th class="text-center">Stars Earned</th>
+              <th class="text-center">Levels Cleared</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboard-rows">
+            <!-- Populated via ApiClient -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 8. SCREEN: PLAYER PROFILE -->
+    <section id="screen-profile" class="screen-view">
+      <div class="profile-card">
+        <!-- Guest View -->
+        <div id="profile-unauthenticated" style="text-align: center;">
+          <div class="brand-gem" style="margin: 0 auto 16px;"></div>
+          <h2 class="brand-title">Guest Adventurer</h2>
+          <p class="text-secondary" style="margin-bottom: 20px;">
+            You are playing in Guest Mode. Register an account to protect your virtual identity, save relic inventories, and claim your place on the global leaderboard.
+          </p>
+          <button class="btn btn-primary" data-nav-target="auth">Sign In or Register</button>
+        </div>
+
+        <!-- Authenticated View -->
+        <div id="profile-authenticated" style="display: none;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+            <div>
+              <h2 id="profile-username" class="brand-title">Arch-Mage</h2>
+              <span id="profile-title" class="badge badge-success">Crystal Seeker</span>
+            </div>
+            <button id="btn-logout" class="btn btn-outline btn-sm">Log Out</button>
+          </div>
+
+          <div class="profile-stats-grid">
+            <div class="profile-stat-box">
+              <div class="hud-stat-label">Total Score</div>
+              <div id="profile-total-score" class="hud-stat-value text-accent">0</div>
+            </div>
+            <div class="profile-stat-box">
+              <div class="hud-stat-label">Total Stars</div>
+              <div id="profile-total-stars" class="hud-stat-value text-gold">0</div>
+            </div>
+            <div class="profile-stat-box">
+              <div class="hud-stat-label">Levels Cleared</div>
+              <div id="profile-cleared-levels" class="hud-stat-value">0</div>
+            </div>
+          </div>
+
+          <p class="text-secondary" style="font-size: 0.85rem;">
+            Account Member Since: <strong id="profile-created-date">Recently</strong>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 9. SCREEN: HELP & ENTERPRISE THEMES -->
+    <section id="screen-help" class="screen-view">
+      <div class="world-map-header">
+        <h2 class="map-title">SOFTWARE FOR ENTERPRISE ARCHITECTURE</h2>
+        <p class="map-subtitle">Mapping of the four core university themes to actual codebase modules.</p>
+      </div>
+
+      <div class="help-grid">
+        <div class="theme-card">
+          <h3 class="theme-title">1. Version Control</h3>
+          <div class="theme-body">
+            Structured Git repository with clean separation of concerns, <code>.gitignore</code> safeguarding environment secrets and node_modules, feature branching strategy, comprehensive test suite, and atomic commits.
+          </div>
+        </div>
+
+        <div class="theme-card">
+          <h3 class="theme-title">2. Interoperability</h3>
+          <div class="theme-body">
+            Demonstrated via standard HTTP/JSON REST APIs between frontend and Express.js, MongoDB database persistence, and secure backend proxy integration with the external University of Bedfordshire Banana API.
+          </div>
+        </div>
+
+        <div class="theme-card">
+          <h3 class="theme-title">3. Event-Driven Programming</h3>
+          <div class="theme-body">
+            Centralized <code>EventBus</code> implements the Publish/Subscribe pattern. Fully decouples core match physics (MainBoard), connected Echo Board, particle effects (BoardRenderer), Web Audio synthesizer (SoundManager), and UI HUD counters.
+          </div>
+        </div>
+
+        <div class="theme-card">
+          <h3 class="theme-title">4. Virtual Identity</h3>
+          <div class="theme-body">
+            End-to-end player identity management with salted bcrypt password hashing, JSON Web Tokens (JWT) for stateless authorization, user profile statistics, persistent inventories, and verified online leaderboard scores.
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================== MODAL DIALOGS ==================== -->
+
+  <!-- Victory Modal -->
+  <div id="victory-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="victory-modal-title">
+    <div class="modal-content">
+      <div class="modal-title modal-title-win" id="victory-modal-title">VICTORY ACHIEVED!</div>
+      <p class="text-secondary">The ancient runes align in harmonious resonance.</p>
+      
+      <div id="victory-stars" class="victory-stars-box">
+        <span class="star-glyph star-gold">★</span>
+        <span class="star-glyph star-gold">★</span>
+        <span class="star-glyph star-gold">★</span>
+      </div>
+
+      <div class="modal-score-summary">
+        <div>Total Score: <strong id="victory-score" class="text-accent font-bold">0</strong></div>
+        <div>Remaining Moves Bonus: <strong id="victory-moves-bonus" class="text-gold font-bold">+0</strong></div>
+        <div id="victory-save-notice" style="margin-top: 6px;"></div>
+      </div>
+
+      <div class="modal-actions">
+        <button id="btn-next-level" class="btn btn-gold">Next Stage</button>
+        <button id="btn-replay-level" class="btn btn-secondary">Replay</button>
+        <button id="btn-map-return" class="btn btn-outline">World Map</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Defeat Modal -->
+  <div id="defeat-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="defeat-modal-title">
+    <div class="modal-content">
+      <div class="modal-title modal-title-defeat" id="defeat-modal-title">MOVES EXHAUSTED</div>
+      <p class="text-secondary">The Echo resonance faded before both objectives were fulfilled.</p>
+      
+      <div class="modal-score-summary">
+        <div>Score Achieved: <strong id="defeat-score" class="text-accent font-bold">0</strong></div>
+      </div>
+
+      <div class="modal-actions">
+        <button id="btn-defeat-retry" class="btn btn-primary">Try Again</button>
+        <button id="btn-defeat-map" class="btn btn-secondary">World Map</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tutorial Modal -->
+  <div id="tutorial-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="tutorial-modal-title">
+    <div class="modal-content">
+      <div class="modal-title" id="tutorial-modal-title" style="color: var(--color-sapphire);">ECHO BOARD TUTORIAL</div>
+      <div id="tutorial-message" style="margin: 16px 0; line-height: 1.6; color: var(--text-secondary); text-align: left;">
+        Welcome to PuzzleQuest! Match 3 or more crystals. Match blue Sapphires to channel Echo Energy and awaken the Ancient Echo Board on the right!
+      </div>
+      <button id="btn-close-tutorial" class="btn btn-gold">Begin Trial</button>
+    </div>
+  </div>
+
+  <!-- ==================== SCRIPTS ==================== -->
+  <!-- Level Data -->
+  <script src="data/levelDefinitions.js"></script>
+
+  <!-- Core Event Bus -->
+  <script src="js/events/EventBus.js"></script>
+
+  <!-- Engine Modules -->
+  <script src="js/engine/Tile.js"></script>
+  <script src="js/engine/MainBoard.js"></script>
+  <script src="js/engine/EchoBoard.js"></script>
+  <script src="js/engine/RelicManager.js"></script>
+  <script src="js/engine/GameEngine.js"></script>
+
+  <!-- Audio Synthesizer -->
+  <script src="js/audio/SoundManager.js"></script>
+
+  <!-- REST API Client -->
+  <script src="js/api/ApiClient.js"></script>
+
+  <!-- UI & Render Modules -->
+  <script src="js/ui/BoardRenderer.js"></script>
+  <script src="js/ui/ScreenManager.js"></script>
+  <script src="js/ui/UIManager.js"></script>
+
+  <!-- App Bootstrapper -->
+  <script src="js/app.js"></script>
+</body>
+</html>
