@@ -22,6 +22,7 @@ class MainBoard {
     this.grid = []; // 2D array: grid[row][col]
     this.isProcessing = false;
     this.selectedTile = null;
+    this.shuffleCount = 0;
     
     this.initialize();
   }
@@ -466,9 +467,10 @@ class MainBoard {
   }
 
   /**
-   * Reshuffle tiles if no legal moves remain
+   * Reshuffle tiles if no legal moves remain, guaranteeing playable board
    */
   reshuffle() {
+    this.shuffleCount++;
     const flat = [];
     for (let r = 0; r < this.rows; r++) {
       for (let c = 0; c < this.cols; c++) {
@@ -476,23 +478,34 @@ class MainBoard {
       }
     }
 
-    // Shuffle array
-    for (let i = flat.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [flat[i], flat[j]] = [flat[j], flat[i]];
-    }
+    let validSetup = false;
+    let attempts = 0;
+    while (!validSetup && attempts < 20) {
+      attempts++;
+      // Shuffle array
+      for (let i = flat.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [flat[i], flat[j]] = [flat[j], flat[i]];
+      }
 
-    let idx = 0;
-    for (let r = 0; r < this.rows; r++) {
-      for (let c = 0; c < this.cols; c++) {
-        if (this.grid[r][c]) {
-          this.grid[r][c].type = flat[idx++];
+      let idx = 0;
+      for (let r = 0; r < this.rows; r++) {
+        for (let c = 0; c < this.cols; c++) {
+          if (this.grid[r][c]) {
+            this.grid[r][c].type = flat[idx++];
+          }
         }
+      }
+
+      // Check if board has no immediate matches and at least one possible move
+      const immediateMatches = this.findMatches();
+      if (immediateMatches.length === 0 && this.hasPossibleMoves()) {
+        validSetup = true;
       }
     }
 
     if (this.eventBus) {
-      this.eventBus.emit('board:reshuffled');
+      this.eventBus.emit('board:reshuffled', { shuffleCount: this.shuffleCount });
     }
   }
 }
