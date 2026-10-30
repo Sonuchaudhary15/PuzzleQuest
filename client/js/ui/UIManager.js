@@ -108,6 +108,17 @@ class UIManager {
       this.tutorialModal.classList.remove('modal-open');
     });
 
+    // Home hero action button
+    document.getElementById('btn-home-play')?.addEventListener('click', () => {
+      if (this.apiClient.isAuthenticated()) {
+        this.screenManager.showScreen('map');
+        this.renderWorldMap();
+      } else {
+        this.screenManager.showToast('Please sign in or create an identity to play PuzzleQuest!', 'warning', 3500);
+        this.screenManager.showScreen('auth');
+      }
+    });
+
     // In-game header buttons
     document.getElementById('btn-game-map')?.addEventListener('click', () => {
       this.screenManager.showScreen('map');
@@ -352,6 +363,11 @@ class UIManager {
    * Render the Adventure World Map with Regions & Branching Nodes
    */
   renderWorldMap() {
+    if (!this.apiClient.isAuthenticated()) {
+      this.screenManager.showToast('Please sign in or register to view the Adventure Map!', 'warning', 3500);
+      this.screenManager.showScreen('auth');
+      return;
+    }
     if (!this.mapContainer) return;
     this.mapContainer.innerHTML = '';
 
@@ -570,6 +586,11 @@ class UIManager {
    * Online Leaderboard
    */
   async loadLeaderboard() {
+    if (!this.apiClient.isAuthenticated()) {
+      this.screenManager.showToast('Please sign in or register to view the Global Leaderboard!', 'warning', 3500);
+      this.screenManager.showScreen('auth');
+      return;
+    }
     if (!this.leaderboardBody) return;
     this.leaderboardBody.innerHTML = '<tr><td colspan="5" class="text-center">Loading realm champions...</td></tr>';
 
@@ -643,8 +664,23 @@ class UIManager {
     const logoutBtn = document.getElementById('btn-logout');
 
     const updateHeaderBadge = () => {
+      const isAuthed = this.apiClient.isAuthenticated();
+
+      // Update nav link lock badges for protected areas
+      const protectedNavs = [
+        { id: 'map', name: 'Adventure Map' },
+        { id: 'game', name: 'Battle Board' },
+        { id: 'leaderboard', name: 'Leaderboard' }
+      ];
+      protectedNavs.forEach(nav => {
+        const link = document.querySelector(`.app-nav [data-nav-target="${nav.id}"]`);
+        if (link) {
+          link.innerHTML = isAuthed ? nav.name : `${nav.name} <span class="nav-lock-badge" title="Sign In Required">🔒</span>`;
+        }
+      });
+
       if (!this.userStatusBadge) return;
-      if (this.apiClient.isAuthenticated()) {
+      if (isAuthed) {
         const user = this.apiClient.currentUser;
         this.userStatusBadge.innerHTML = `
           <span class="user-badge-name">🛡️ ${user?.username || 'Adventurer'}</span>
@@ -653,7 +689,8 @@ class UIManager {
         document.getElementById('btn-quick-logout')?.addEventListener('click', () => {
           this.apiClient.clearSession();
           updateHeaderBadge();
-          this.loadProfileScreen();
+          this.screenManager.showToast('Logged out successfully.', 'info', 2500);
+          this.screenManager.showScreen('home');
         });
       } else {
         this.userStatusBadge.innerHTML = `
@@ -712,7 +749,8 @@ class UIManager {
       logoutBtn.addEventListener('click', () => {
         this.apiClient.clearSession();
         updateHeaderBadge();
-        this.loadProfileScreen();
+        this.screenManager.showToast('Logged out successfully.', 'info', 2500);
+        this.screenManager.showScreen('home');
       });
     }
   }
