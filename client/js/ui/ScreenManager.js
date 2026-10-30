@@ -88,6 +88,46 @@ class ScreenManager {
       this.showScreen('home', false);
     }
   }
+
+  /**
+   * Display a non-intrusive notification banner
+   * @param {string} message
+   * @param {('info'|'success'|'warning'|'error')} type
+   * @param {number} duration
+   */
+  showToast(message, type = 'info', duration = 3000) {
+    if (typeof document === 'undefined') return;
+    const toast = document.createElement('div');
+    toast.className = `quest-toast toast-${type}`;
+    toast.textContent = message;
+    Object.assign(toast.style, {
+      position: 'fixed',
+      bottom: '24px',
+      right: '24px',
+      padding: '12px 20px',
+      borderRadius: '8px',
+      background: type === 'error' ? '#ef4444' : type === 'success' ? '#10b981' : '#14532d',
+      color: '#ffffff',
+      fontWeight: '600',
+      boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+      zIndex: '99999',
+      transition: 'opacity 0.3s ease, transform 0.3s ease',
+      transform: 'translateY(10px)',
+      opacity: '0'
+    });
+
+    document.body.appendChild(toast);
+    requestAnimationFrame(() => {
+      toast.style.transform = 'translateY(0)';
+      toast.style.opacity = '1';
+    });
+
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(10px)';
+      setTimeout(() => toast.remove(), 300);
+    }, duration);
+  }
 }
 
 if (typeof module !== 'undefined' && module.exports) {

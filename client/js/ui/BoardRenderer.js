@@ -116,6 +116,9 @@ class BoardRenderer {
         }
       });
       this.spawnMatchParticles(data.removedTiles);
+      if (data.combo > 1 && data.removedTiles[0]) {
+        this.spawnComboText(data.combo, data.removedTiles[0]);
+      }
       setTimeout(() => this.renderMainBoard(), 200);
     });
 
@@ -565,6 +568,31 @@ class BoardRenderer {
   }
 
   /**
+   * Spawn floating combo badge indicator
+   */
+  spawnComboText(combo, tile) {
+    if (!this.fxCanvas || !this.mainContainer) return;
+    const canvasRect = this.fxCanvas.getBoundingClientRect();
+    const el = this.mainContainer.querySelector(`[data-row="${tile.row}"][data-col="${tile.col}"]`);
+    if (el) {
+      const rect = el.getBoundingClientRect();
+      const cx = (rect.left + rect.width / 2) - canvasRect.left;
+      const cy = (rect.top + rect.height / 2) - canvasRect.top;
+
+      this.particles.push({
+        x: cx,
+        y: cy,
+        vx: 0,
+        vy: -1.2,
+        text: `Combo x${combo}!`,
+        color: '#15803d',
+        alpha: 1,
+        decay: 0.02
+      });
+    }
+  }
+
+  /**
    * Continuous 60fps render loop for canvas FX
    */
   startRenderLoop() {
@@ -634,9 +662,15 @@ class BoardRenderer {
       this.ctx.fillStyle = p.color;
       this.ctx.shadowBlur = 8;
       this.ctx.shadowColor = p.color;
-      this.ctx.beginPath();
-      this.ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-      this.ctx.fill();
+      if (p.text) {
+        this.ctx.font = 'bold 18px Outfit, sans-serif';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText(p.text, p.x, p.y);
+      } else {
+        this.ctx.beginPath();
+        this.ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        this.ctx.fill();
+      }
       this.ctx.restore();
     }
   }
