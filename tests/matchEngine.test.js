@@ -108,4 +108,16 @@ describe('MainBoard Match-Three Mechanics', () => {
     assert.strictEqual(board.isAdjacent(2, 3, 3, 4), false, 'Diagonal neighbor is NOT adjacent');
     assert.strictEqual(board.isAdjacent(2, 3, 2, 5), false, 'Two steps away is NOT adjacent');
   });
+
+  test('Tracks shuffle count and preserves tile integrity after reshuffle', () => {
+    const board = new MainBoard({ rows: 8, cols: 8 });
+    assert.strictEqual(board.shuffleCount, 0, 'Initial shuffle count should be 0');
+    board.reshuffle();
+    assert.strictEqual(board.shuffleCount, 1, 'Shuffle count should increment by 1');
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        assert.ok(board.grid[r][c] !== null, `Cell at (${r},${c}) must not be null after reshuffle`);
+      }
+    }
+  });
 });
