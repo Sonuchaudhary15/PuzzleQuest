@@ -74,35 +74,66 @@ class BoardRenderer {
     });
 
     this.eventBus.on('tile:swapped', (data) => {
-      // Animate swapping tiles before re-render
-      const tileAEl = this.mainContainer?.querySelector(`[data-row="${data.tileA.row}"][data-col="${data.tileA.col}"] .crystal-tile`);
-      const tileBEl = this.mainContainer?.querySelector(`[data-row="${data.tileB.row}"][data-col="${data.tileB.col}"] .crystal-tile`);
-      if (tileAEl) tileAEl.classList.add('tile-swapping');
-      if (tileBEl) tileBEl.classList.add('tile-swapping');
+      // Visually slide the two adjacent tiles into each other's cells
+      const cellA = this.mainContainer?.querySelector(`[data-row="${data.tileA.row}"][data-col="${data.tileA.col}"]`);
+      const cellB = this.mainContainer?.querySelector(`[data-row="${data.tileB.row}"][data-col="${data.tileB.col}"]`);
+      const tileAEl = cellA?.querySelector('.crystal-tile');
+      const tileBEl = cellB?.querySelector('.crystal-tile');
+
+      if (cellA && cellB && tileAEl && tileBEl) {
+        const rectA = cellA.getBoundingClientRect();
+        const rectB = cellB.getBoundingClientRect();
+        const dx = rectB.left - rectA.left;
+        const dy = rectB.top - rectA.top;
+
+        tileAEl.style.transition = 'transform 0.22s cubic-bezier(0.25, 1, 0.5, 1)';
+        tileAEl.style.transform = `translate(${dx}px, ${dy}px)`;
+        tileAEl.style.zIndex = '20';
+
+        tileBEl.style.transition = 'transform 0.22s cubic-bezier(0.25, 1, 0.5, 1)';
+        tileBEl.style.transform = `translate(${-dx}px, ${-dy}px)`;
+        tileBEl.style.zIndex = '19';
+      }
+
       this.selectedCoord = null;
       this.clearHighlights();
-      setTimeout(() => this.renderMainBoard(), 80);
     });
 
     this.eventBus.on('tile:swap_reverted', (data) => {
-      // Shake both tiles to show invalid swap
-      const tileAEl = this.mainContainer?.querySelector(`[data-row="${data.r1}"][data-col="${data.c1}"] .crystal-tile`);
-      const tileBEl = this.mainContainer?.querySelector(`[data-row="${data.r2}"][data-col="${data.c2}"] .crystal-tile`);
+      // Revert slide back smoothly and shake
+      const cellA = this.mainContainer?.querySelector(`[data-row="${data.r1}"][data-col="${data.c1}"]`);
+      const cellB = this.mainContainer?.querySelector(`[data-row="${data.r2}"][data-col="${data.c2}"]`);
+      const tileAEl = cellA?.querySelector('.crystal-tile');
+      const tileBEl = cellB?.querySelector('.crystal-tile');
+
       if (tileAEl) {
-        tileAEl.classList.remove('selected');
-        tileAEl.classList.add('tile-invalid-swap');
-        setTimeout(() => tileAEl.classList.remove('tile-invalid-swap'), 400);
+        tileAEl.style.transition = 'transform 0.2s cubic-bezier(0.25, 1, 0.5, 1)';
+        tileAEl.style.transform = 'translate(0px, 0px)';
       }
       if (tileBEl) {
-        tileBEl.classList.add('tile-invalid-swap');
-        setTimeout(() => tileBEl.classList.remove('tile-invalid-swap'), 400);
+        tileBEl.style.transition = 'transform 0.2s cubic-bezier(0.25, 1, 0.5, 1)';
+        tileBEl.style.transform = 'translate(0px, 0px)';
       }
+
+      setTimeout(() => {
+        if (tileAEl) {
+          tileAEl.classList.add('tile-invalid-swap');
+          setTimeout(() => tileAEl.classList.remove('tile-invalid-swap'), 350);
+        }
+        if (tileBEl) {
+          tileBEl.classList.add('tile-invalid-swap');
+          setTimeout(() => tileBEl.classList.remove('tile-invalid-swap'), 350);
+        }
+        setTimeout(() => this.renderMainBoard(), 250);
+      }, 200);
+
       this.selectedCoord = null;
       this.clearHighlights();
-      setTimeout(() => this.renderMainBoard(), 150);
     });
 
     this.eventBus.on('match:detected', (data) => {
+      // Establish tiles in their newly swapped positions before pop animation
+      this.renderMainBoard();
       // Animate matched tiles with pop-and-vanish before removing from DOM
       data.removedTiles.forEach(tile => {
         const tileEl = this.mainContainer?.querySelector(`[data-row="${tile.row}"][data-col="${tile.col}"] .crystal-tile`);

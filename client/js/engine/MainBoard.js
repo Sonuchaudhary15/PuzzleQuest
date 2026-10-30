@@ -120,17 +120,23 @@ class MainBoard {
       });
     }
 
+    // Allow physical slide animation to play out
+    await new Promise(resolve => setTimeout(resolve, 220));
+
     // Check for matches
     const initialMatches = this.findMatches();
 
     if (initialMatches.length === 0) {
       // Revert swap
       this.executeSwap(r1, c1, r2, c2);
-      this.isProcessing = false;
 
       if (this.eventBus) {
         this.eventBus.emit('tile:swap_reverted', { r1, c1, r2, c2 });
       }
+
+      // Allow revert slide-back animation to finish before unlocking input
+      await new Promise(resolve => setTimeout(resolve, 280));
+      this.isProcessing = false;
 
       return { success: false, reason: 'NO_MATCH' };
     }
