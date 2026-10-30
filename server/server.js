@@ -30,6 +30,16 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Performance monitoring middleware: tracks request latency
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    res.setHeader('X-Response-Time', `${duration}ms`);
+  });
+  next();
+});
+
 // Serve Static Frontend Assets
 const clientPath = path.join(__dirname, '..', 'client');
 app.use(express.static(clientPath));
@@ -48,9 +58,16 @@ app.use('/api/banana', bananaRoutes);
 
 // System Health Check endpoint
 app.get('/api/health', (req, res) => {
+  const memory = process.memoryUsage();
   res.json({
     status: 'online',
     game: 'PuzzleQuest: A Strategy-Based Match-Three Adventure',
+    uptimeSeconds: Math.floor(process.uptime()),
+    nodeVersion: process.version,
+    memoryUsageMB: {
+      rss: Math.round(memory.rss / (1024 * 1024)),
+      heapUsed: Math.round(memory.heapUsed / (1024 * 1024))
+    },
     timestamp: new Date().toISOString()
   });
 });

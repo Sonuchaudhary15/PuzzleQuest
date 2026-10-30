@@ -31,6 +31,14 @@ router.post('/complete-level', optionalAuth, async (req, res) => {
   try {
     const { levelId, score, stars, movesRemaining, movesUsed, durationSeconds, validationToken } = req.body;
 
+    // Payload sanity guard check
+    if (!levelId || typeof score !== 'number' || score < 0) {
+      return res.status(400).json({
+        error: 'Invalid completion payload: valid levelId and non-negative numeric score are required.',
+        code: 'INVALID_PAYLOAD'
+      });
+    }
+
     // 1. Server-side validation
     const valResult = validationService.validateLevelResult({
       levelId,
