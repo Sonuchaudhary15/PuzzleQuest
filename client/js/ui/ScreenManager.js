@@ -13,9 +13,10 @@
  * 9. Help & Enterprise Architecture
  */
 class ScreenManager {
-  constructor(screens = {}, eventBus = null) {
+  constructor(screens = {}, eventBus = null, apiClient = null) {
     this.screens = screens;
     this.eventBus = eventBus;
+    this.apiClient = apiClient || (typeof window !== 'undefined' ? window.apiClient : null);
     this.currentScreen = 'home';
     this.history = [];
 
@@ -35,6 +36,21 @@ class ScreenManager {
   }
 
   showScreen(screenId, pushHistory = true) {
+    // Auth Guard: Only authenticated users can access the crystal board (game), adventure map, and leaderboard
+    const protectedScreens = ['game', 'map', 'leaderboard'];
+    const isAuthed = this.apiClient ? this.apiClient.isAuthenticated() : (window.apiClient?.isAuthenticated() || false);
+
+    if (protectedScreens.includes(screenId) && !isAuthed) {
+      const screenNames = {
+        game: 'Crystal Battle Board',
+        map: 'Adventure Map',
+        leaderboard: 'Global Leaderboard'
+      };
+      const realmName = screenNames[screenId] || 'this realm';
+      this.showToast(`Please sign in or register to access the ${realmName}!`, 'warning', 3500);
+      screenId = 'auth';
+    }
+
     if (!this.screens[screenId]) {
       console.warn(`[ScreenManager] Screen "${screenId}" not registered.`);
       return;

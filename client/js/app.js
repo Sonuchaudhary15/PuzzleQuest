@@ -27,8 +27,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 4. REST API Client
   const apiClient = new ApiClient();
+  window.apiClient = apiClient;
 
-  // 5. Screen Manager (Routing)
+  // 5. Screen Manager (Routing) with Auth Guard
   const screens = {
     home: document.getElementById('screen-home'),
     auth: document.getElementById('screen-auth'),
@@ -40,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
     leaderboard: document.getElementById('screen-leaderboard'),
     help: document.getElementById('screen-help')
   };
-  const screenManager = new ScreenManager(screens, eventBus);
+  const screenManager = new ScreenManager(screens, eventBus, apiClient);
 
   // 6. Board Visual & Particle Renderer
   const boardRenderer = new BoardRenderer({
