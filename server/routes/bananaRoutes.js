@@ -12,6 +12,19 @@ const { optionalAuth } = require('../middleware/auth');
 const router = express.Router();
 
 /**
+ * GET /api/banana/status
+ * Check Banana API proxy reachability and active challenge pool status
+ */
+router.get('/status', (req, res) => {
+  res.json({
+    status: 'ONLINE',
+    proxyTarget: 'https://marcconrad.com/uob/banana/api.php',
+    timeoutMs: bananaService.timeoutMs,
+    timestamp: new Date().toISOString()
+  });
+});
+
+/**
  * GET /api/banana/challenge
  */
 router.get('/challenge', async (req, res) => {
