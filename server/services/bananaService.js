@@ -43,65 +43,76 @@ class BananaService {
 
   /**
    * Request an external puzzle from Banana API and create a secure session
+   * @param {number} maxRetries - Number of retry attempts on transient network error
    * @returns {Promise<{success: boolean, challenge?: Object, error?: string}>}
    */
-  async requestChallenge() {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
+  async requestChallenge(maxRetries = 2) {
+    let lastError = null;
 
-    try {
-      const response = await fetch(`${this.apiUrl}?out=json`, {
-        signal: controller.signal,
-        headers: { 'Accept': 'application/json' }
-      });
+    for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
 
-      clearTimeout(timeout);
+      try {
+        const response = await fetch(`${this.apiUrl}?out=json`, {
+          signal: controller.signal,
+          headers: { 'Accept': 'application/json' }
+        });
 
-      if (!response.ok) {
-        throw new Error(`External service responded with HTTP status ${response.status}`);
-      }
+        clearTimeout(timeout);
 
-      const data = await response.json();
-
-      // Validate documented contract
-      if (!data || typeof data.question !== 'string' || typeof data.solution === 'undefined') {
-        throw new Error('Invalid response structure received from Banana API');
-      }
-
-      // Generate secure session ID
-      const challengeId = crypto.randomUUID();
-      const expiresAt = Date.now() + (10 * 60 * 1000); // 10 minutes expiry
-
-      // Cache solution server-side ONLY
-      activeChallenges.set(challengeId, {
-        solution: parseInt(data.solution, 10),
-        questionUrl: data.question,
-        expiresAt
-      });
-
-      // Return challenge to client WITHOUT the solution
-      return {
-        success: true,
-        challenge: {
-          challengeId,
-          question: data.question,
-          expiresInSeconds: 600
+        if (!response.ok) {
+          throw new Error(`External service responded with HTTP status ${response.status}`);
         }
-      };
-    } catch (err) {
-      clearTimeout(timeout);
-      const isTimeout = err.name === 'AbortError';
-      const message = isTimeout
-        ? 'External University Banana API timed out after 6 seconds.'
-        : `Banana API communication error: ${err.message}`;
 
-      console.warn(`[BananaService] ${message}`);
+        const data = await response.json();
 
-      return {
-        success: false,
-        error: 'The University Banana API service is temporarily unreachable. Mystery challenge is unavailable.'
-      };
+        // Validate documented contract
+        if (!data || typeof data.question !== 'string' || typeof data.solution === 'undefined') {
+          throw new Error('Invalid response structure received from Banana API');
+        }
+
+        // Generate secure session ID
+        const challengeId = crypto.randomUUID();
+        const expiresAt = Date.now() + (10 * 60 * 1000); // 10 minutes expiry
+
+        // Cache solution server-side ONLY
+        activeChallenges.set(challengeId, {
+          solution: parseInt(data.solution, 10),
+          questionUrl: data.question,
+          expiresAt
+        });
+
+        // Return challenge to client WITHOUT the solution
+        return {
+          success: true,
+          challenge: {
+            challengeId,
+            question: data.question,
+            expiresInSeconds: 600
+          }
+        };
+      } catch (err) {
+        clearTimeout(timeout);
+        lastError = err;
+        if (attempt <= maxRetries) {
+          // Exponential backoff delay
+          await new Promise(r => setTimeout(r, attempt * 400));
+        }
+      }
     }
+
+    const isTimeout = lastError?.name === 'AbortError';
+    const message = isTimeout
+      ? 'External University Banana API timed out after 6 seconds.'
+      : `Banana API communication error: ${lastError?.message}`;
+
+    console.warn(`[BananaService] ${message}`);
+
+    return {
+      success: false,
+      error: 'The University Banana API service is temporarily unreachable. Mystery challenge is unavailable.'
+    };
   }
 
   /**
