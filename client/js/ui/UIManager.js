@@ -1188,6 +1188,15 @@ class UIManager {
     if (this.forgeTrialModal) {
       this.forgeTrialModal.classList.remove('modal-open');
     }
+    const bodyEl = document.getElementById('forge-modal-body');
+    if (bodyEl) bodyEl.style.display = 'block';
+    const noticeEl = document.getElementById('forge-modal-notice');
+    if (noticeEl) { noticeEl.style.display = 'none'; noticeEl.innerHTML = ''; }
+    const submitBtn = document.getElementById('btn-submit-forge-answer');
+    if (submitBtn) submitBtn.disabled = false;
+    const inputEl = document.getElementById('forge-answer-input');
+    if (inputEl) { inputEl.value = ''; inputEl.disabled = false; }
+    document.querySelectorAll('#forge-trial-modal .btn-forge-key').forEach(function(b) { b.classList.remove('active'); });
     this.activeForgeTrial = null;
   }
 
@@ -1253,11 +1262,16 @@ class UIManager {
       } else {
         if (noticeEl) {
           noticeEl.className = 'mystery-notice alert-danger';
-          noticeEl.innerHTML = '<strong>\u274C Forge Failed!</strong><br/>' + ((res && res.error) || 'Incorrect arcane equation. Try again!');
+          noticeEl.innerHTML = '<strong>\u274C Forge Failed!</strong><br/>' + ((res && res.error) || 'Incorrect arcane equation. The arcane forge runes dissipated!');
           noticeEl.style.display = 'block';
         }
-        const isLimit = res && res.dailyFusesRemaining === 0;
-        if (isLimit && bodyEl) bodyEl.style.display = 'none';
+        if (bodyEl) bodyEl.style.display = 'none';
+
+        // Auto-close modal when answer is incorrect or failed
+        setTimeout(function() {
+          this.closeForgeTrialModal();
+          this.updateRelicFusionScreen();
+        }.bind(this), 2200);
       }
 
     } else {
@@ -1308,9 +1322,16 @@ class UIManager {
       } else {
         if (noticeEl) {
           noticeEl.className = 'mystery-notice alert-danger';
-          noticeEl.innerHTML = '<strong>\u274C Incorrect Equation.</strong><br/>The forge magic fizzled. Try a different digit!';
+          noticeEl.innerHTML = '<strong>\u274C Incorrect Equation.</strong><br/>The forge magic fizzled. The arcane seal remains locked!';
           noticeEl.style.display = 'block';
         }
+        if (bodyEl) bodyEl.style.display = 'none';
+
+        // Auto-close modal when answer is incorrect
+        setTimeout(function() {
+          this.closeForgeTrialModal();
+          this.updateRelicFusionScreen();
+        }.bind(this), 2200);
       }
     }
   }

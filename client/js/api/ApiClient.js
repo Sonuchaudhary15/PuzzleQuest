@@ -10,7 +10,15 @@
  */
 class ApiClient {
   constructor(baseUrl = '') {
-    this.baseUrl = baseUrl;
+    if (!baseUrl && typeof window !== 'undefined' && window.location) {
+      if (window.location.port && window.location.port !== '3000' && window.location.protocol.startsWith('http')) {
+        this.baseUrl = `${window.location.protocol}//${window.location.hostname}:3000`;
+      } else {
+        this.baseUrl = '';
+      }
+    } else {
+      this.baseUrl = baseUrl;
+    }
     this.token = null;
     this.currentUser = null;
 
@@ -200,7 +208,13 @@ class ApiClient {
         headers: this.getHeaders(),
         body: JSON.stringify({ relicType, challengeId, answer })
       });
-      const data = await res.json();
+      const contentType = res.headers.get('content-type') || '';
+      let data;
+      if (contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        throw new Error(res.status === 404 ? 'Arcane Forge server endpoint unavailable (404). Ensure backend server is running.' : Server error (). Please try again.);
+      }
       if (!res.ok) throw new Error(data.error || 'Forge trial verification failed');
       return { success: true, ...data };
     } catch (err) {
