@@ -213,7 +213,7 @@ class ApiClient {
       if (contentType.includes('application/json')) {
         data = await res.json();
       } else {
-        throw new Error(res.status === 404 ? 'Arcane Forge server endpoint unavailable (404). Ensure backend server is running.' : Server error (). Please try again.);
+        throw new Error(res.status === 404 ? 'Arcane Forge server endpoint unavailable (404). Ensure backend server is running.' : `Server error (${res.status}). Please try again.`);
       }
       if (!res.ok) throw new Error(data.error || 'Forge trial verification failed');
       return { success: true, ...data };
