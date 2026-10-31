@@ -44,7 +44,7 @@ router.get('/challenge', async (req, res) => {
  * POST /api/banana/verify
  */
 router.post('/verify', optionalAuth, async (req, res) => {
-  const { challengeId, answer } = req.body;
+  const { challengeId, answer, levelId } = req.body;
 
   if (!challengeId || typeof answer === 'undefined') {
     return res.status(400).json({
@@ -54,7 +54,7 @@ router.post('/verify', optionalAuth, async (req, res) => {
   }
 
   const userId = req.user ? req.user.userId : null;
-  const result = await bananaService.verifyAnswer(challengeId, answer, userId);
+  const result = await bananaService.verifyAnswer(challengeId, answer, userId, levelId);
 
   if (!result.success) {
     return res.status(400).json(result);

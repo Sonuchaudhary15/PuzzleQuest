@@ -239,12 +239,12 @@ class ApiClient {
   /**
    * Verify solution for external Banana challenge
    */
-  async verifyBananaAnswer(challengeId, answer) {
+  async verifyBananaAnswer(challengeId, answer, levelId = 1) {
     try {
       const res = await fetch(`${this.baseUrl}/api/banana/verify`, {
         method: 'POST',
         headers: this.getHeaders(),
-        body: JSON.stringify({ challengeId, answer })
+        body: JSON.stringify({ challengeId, answer, levelId })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Verification failed');
@@ -252,6 +252,13 @@ class ApiClient {
     } catch (err) {
       return { success: false, error: err.message };
     }
+  }
+
+  /**
+   * Alias for verifyBananaAnswer
+   */
+  async submitBananaAnswer(challengeId, answer, levelId = 1) {
+    return this.verifyBananaAnswer(challengeId, answer, levelId);
   }
 }
 

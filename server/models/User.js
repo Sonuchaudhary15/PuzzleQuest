@@ -41,6 +41,10 @@ const userSchema = new mongoose.Schema({
     type: Number,
     default: 50 // New adventurer grant
   },
+  bananaSolved: {
+    type: Number,
+    default: 0
+  },
   createdAt: {
     type: Date,
     default: Date.now
