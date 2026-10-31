@@ -1,0 +1,862 @@
+{
+  "info": {
+    "_postman_id": "2f6294b9-68b9-4849-bdd1-f4e3b9a02f1e",
+    "name": "PuzzleQuest Match-Three Adventure API - Test Collection",
+    "description": "Enterprise API test collection for PuzzleQuest (CIS046-3). Covers Virtual Identity with Nepali adventurers (Aarav Sharma, Prashant Thapa), Gameplay validation, University of Bedfordshire Banana API Interoperability, Relic Fusion Forge with daily allowance limits, and Global Leaderboard with player dossiers.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "challengeId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01. System Health & Game Config",
+      "item": [
+        {
+          "name": "System Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "health"
+              ]
+            },
+            "description": "Verifies backend server uptime, memory usage, and operational status."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Server is online\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.status).to.eql(\"online\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All 12 Adventure Level Definitions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/game/levels",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "game",
+                "levels"
+              ]
+            },
+            "description": "Returns campaign level configurations across the 3 world map regions (Verdant Grove, Sunken Citadel, Celestial Spire)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Returns 12 adventure levels\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.levels.length).to.eql(12);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Banana API Proxy Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/banana/status",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "banana",
+                "status"
+              ]
+            },
+            "description": "Checks connectivity status to University of Bedfordshire Banana API proxy endpoint."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Banana proxy is ONLINE\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.status).to.eql(\"ONLINE\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02. Virtual Identity & Authentication (Nepali Adventurers)",
+      "item": [
+        {
+          "name": "Register Adventurer (Aarav Sharma)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"Aarav_Sharma\",\n  \"password\": \"HimalayanSecret123!\",\n  \"adventurerTitle\": \"Himalayan Crystal Warden\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Registers player Aarav Sharma with bcrypt salted password and automatically saves JWT token to collection variable."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Registration successful or already registered\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 400]);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "if (json.token) {",
+                  "    pm.collectionVariables.set(\"token\", json.token);",
+                  "    console.log(\"Token saved for Aarav Sharma\");",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register Adventurer (Prashant Thapa)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"Prashant_Thapa\",\n  \"password\": \"KathmanduEcho456!\",\n  \"adventurerTitle\": \"Kathmandu Rune Master\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Registers second Nepali player Prashant Thapa for leaderboard competition."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200, 201 or 400 (if exists)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 400]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login (Aarav Sharma)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"Aarav_Sharma\",\n  \"password\": \"HimalayanSecret123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Authenticates Aarav Sharma, verifies password with bcrypt, and stores Bearer JWT token in collection variable {{token}}."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Login successful with 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "pm.test(\"Returns valid JWT token\", function () {",
+                  "    pm.expect(json.token).to.be.a(\"string\");",
+                  "});",
+                  "if (json.token) {",
+                  "    pm.collectionVariables.set(\"token\", json.token);",
+                  "    console.log(\"Token updated for Aarav Sharma\");",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Current Profile (Aarav Sharma)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Fetches virtual identity profile, stats, unlocked achievements, and relic fragments."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "pm.test(\"Username matches Aarav_Sharma\", function () {",
+                  "    pm.expect(json.username).to.eql(\"Aarav_Sharma\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03. Gameplay & Quest Progression Validation",
+      "item": [
+        {
+          "name": "Submit Level 1 Completion (Verdant Grove Entry)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"levelId\": 1,\n  \"score\": 3200,\n  \"stars\": 3,\n  \"movesRemaining\": 12,\n  \"movesUsed\": 8,\n  \"durationSeconds\": 45\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/game/complete-level",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "game",
+                "complete-level"
+              ]
+            },
+            "description": "Submits Level 1 gameplay results. Server validates move counts and scores against mathematical boundaries before saving stars and fragments."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Level completed successfully (200)\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "pm.test(\"Validates and awards stars\", function () {",
+                  "    pm.expect(json.stars).to.be.at.least(1);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Submit Level 2 Completion (Whispering Caverns)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"levelId\": 2,\n  \"score\": 4100,\n  \"stars\": 3,\n  \"movesRemaining\": 10,\n  \"movesUsed\": 15,\n  \"durationSeconds\": 65\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/game/complete-level",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "game",
+                "complete-level"
+              ]
+            },
+            "description": "Submits Level 2 completion. Unlocks Level 3 and increments overall player score."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Adventure Map Progress (Resume State)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/game/progress",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "game",
+                "progress"
+              ]
+            },
+            "description": "Retrieves all unlocked levels and stars to verify the adventure map resume architecture."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "pm.test(\"Has unlocked levels including Level 2\", function () {",
+                  "    pm.expect(json.unlockedLevels).to.include(2);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "04. University Banana API Interoperability",
+      "item": [
+        {
+          "name": "Fetch Mystery Challenge from Banana API",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/banana/challenge",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "banana",
+                "challenge"
+              ]
+            },
+            "description": "Proxies request to https://marcconrad.com/uob/banana/api.php?out=json. Returns challenge question image URL and securely caches solution on the server. Automatically saves {{challengeId}} collection variable."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "pm.test(\"Challenge object present with question image\", function () {",
+                  "    pm.expect(json.challenge).to.be.an(\"object\");",
+                  "    pm.expect(json.challenge.question).to.include(\"http\");",
+                  "});",
+                  "pm.test(\"Expected solution is NOT leaked to client\", function () {",
+                  "    pm.expect(json.challenge.solution).to.be.undefined;",
+                  "});",
+                  "if (json.challenge && json.challenge.challengeId) {",
+                  "    pm.collectionVariables.set(\"challengeId\", json.challenge.challengeId);",
+                  "    console.log(\"Cached challengeId:\", json.challenge.challengeId);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify Banana Challenge Answer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"challengeId\": \"{{challengeId}}\",\n  \"answer\": 7,\n  \"levelId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/banana/verify",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "banana",
+                "verify"
+              ]
+            },
+            "description": "Validates answer against server cache. If correct, awards bonus score, bonus relic fragments, and increments bananaSolved count."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Verification endpoint responds (200 or 400)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 400]);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "pm.test(\"Returns validation result boolean\", function () {",
+                  "    pm.expect(json).to.have.property(\"isCorrect\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "05. Relic Fusion Forge (Banana Trial & Daily Limit)",
+      "item": [
+        {
+          "name": "Get Relic Inventory & Daily Allowance Remaining",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/relics/inventory",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "relics",
+                "inventory"
+              ]
+            },
+            "description": "Retrieves player battle relic charges, fragment balance, dailyForgeCount, and dailyFusesRemaining."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "pm.test(\"Inventory has daily allowance fields\", function () {",
+                  "    pm.expect(json).to.have.property(\"dailyForgeCount\");",
+                  "    pm.expect(json).to.have.property(\"dailyFusesRemaining\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Forge Trial: Fuse Sunbeam Lance (Trial 1 of 2)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"relicType\": \"row_clear\",\n  \"challengeId\": \"{{challengeId}}\",\n  \"answer\": 5\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/relics/forge-trial",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "relics",
+                "forge-trial"
+              ]
+            },
+            "description": "Attempts Arcane Forge Trial to fuse Sunbeam Lance. Enforces server-side Banana API verification and tracks daily allowance (maximum 2 per calendar day)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Responds with 200 (Success) or 400 (Wrong Answer / Expired)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 400]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Craft Relic with Fragments (Traditional Craft)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"relicType\": \"barrier_breaker\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/relics/craft",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "relics",
+                "craft"
+              ]
+            },
+            "description": "Crafts a Rune Breaker using 40 relic fragments."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200 or 400 (if insufficient fragments)\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 400]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "06. Global Leaderboard & Adventurer Dossier",
+      "item": [
+        {
+          "name": "Get Global Leaderboard (Ranked by Score)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/leaderboard?limit=10&sortBy=score",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "leaderboard"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "score"
+                }
+              ]
+            },
+            "description": "Returns top 10 adventurers sorted descending by total score, including stars, level reached, and banana puzzles solved."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var json = pm.response.json();",
+                  "pm.test(\"Returns rankings array\", function () {",
+                  "    pm.expect(json.rankings).to.be.an(\"array\");",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Global Leaderboard (Ranked by Stars)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/leaderboard?limit=10&sortBy=stars",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "leaderboard"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "stars"
+                }
+              ]
+            },
+            "description": "Returns top adventurers ranked by total campaign stars."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Adventurer Dossier (Aarav Sharma)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/leaderboard/dossier/Aarav_Sharma",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "leaderboard",
+                "dossier",
+                "Aarav_Sharma"
+              ]
+            },
+            "description": "Inspects detailed public dossier of Nepali player Aarav Sharma, including campaign progression, star distribution, and solved Banana puzzles."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200 or 404\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                  "});",
+                  "if (pm.response.code === 200) {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json.username).to.eql(\"Aarav_Sharma\");",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Adventurer Dossier (Prashant Thapa)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/leaderboard/dossier/Prashant_Thapa",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "leaderboard",
+                "dossier",
+                "Prashant_Thapa"
+              ]
+            },
+            "description": "Inspects detailed public dossier for Prashant Thapa."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200 or 404\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
