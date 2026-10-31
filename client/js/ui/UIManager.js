@@ -47,6 +47,10 @@ class UIManager {
     this.victoryModal = document.getElementById('victory-modal');
     this.defeatModal = document.getElementById('defeat-modal');
     this.tutorialModal = document.getElementById('tutorial-modal');
+    this.inGameMysteryModal = document.getElementById('in-game-mystery-modal');
+    this.btnSummonRift = document.getElementById('btn-summon-rift');
+    this.inGameMysteryTimer = null;
+    this.activeInGameChallenge = null;
 
     // Map container
     this.mapContainer = document.getElementById('adventure-map-container');
@@ -69,6 +73,7 @@ class UIManager {
     this.eventBus.on('echo:multiplier_updated', (data) => this.updateHUDMultiplier(data));
     this.eventBus.on('game:win', (data) => this.showVictoryModal(data));
     this.eventBus.on('game:lose', (data) => this.showDefeatModal(data));
+    this.eventBus.on('game:mystery_rift_triggered', (data) => this.openInGameMysteryModal(data));
 
     // Relic battle events
     this.eventBus.on('relic:targeting_started', (data) => this.showTargetingNotification(data));
@@ -125,6 +130,41 @@ class UIManager {
       this.renderWorldMap();
     });
     document.getElementById('btn-game-restart')?.addEventListener('click', () => this.handleReplayLevel());
+    document.getElementById('btn-summon-rift')?.addEventListener('click', () => {
+      if (this.gameEngine.mysteryRiftCompleted) {
+        this.screenManager?.showToast('Arcane Rift power already claimed in this battle!', 'info');
+      } else {
+        this.openInGameMysteryModal({ level: this.gameEngine.currentLevel, manual: true });
+      }
+    });
+
+    // In-Game Mystery Rift Modal Controls
+    document.getElementById('btn-close-mystery-top')?.addEventListener('click', () => {
+      this.closeInGameMysteryModal();
+    });
+    document.getElementById('btn-skip-mystery')?.addEventListener('click', () => {
+      this.closeInGameMysteryModal();
+    });
+    document.querySelectorAll('#in-game-mystery-modal .btn-num-key').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const val = e.currentTarget.getAttribute('data-val');
+        const input = document.getElementById('in-game-mystery-answer');
+        if (input) {
+          input.value = val;
+          document.querySelectorAll('#in-game-mystery-modal .btn-num-key').forEach(b => b.classList.remove('active'));
+          e.currentTarget.classList.add('active');
+        }
+      });
+    });
+    document.getElementById('btn-cast-mystery-answer')?.addEventListener('click', () => {
+      this.handleCastInGameMysteryAnswer();
+    });
+    document.getElementById('in-game-mystery-answer')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        this.handleCastInGameMysteryAnswer();
+      }
+    });
 
     // Navigation triggers
     document.querySelectorAll('[data-nav-target="leaderboard"]').forEach(btn => {
@@ -165,6 +205,13 @@ class UIManager {
     });
 
     this.updateBattleRelicBar();
+
+    const riftBtn = document.getElementById('btn-summon-rift');
+    if (riftBtn) {
+      riftBtn.textContent = '🌌 Arcane Rift';
+      riftBtn.style.animation = 'riftPulse 2.5s infinite ease-in-out';
+      riftBtn.style.opacity = '1';
+    }
 
     // Show tutorial popup if level is tutorial
     if (data.level.isTutorial && this.tutorialModal) {
@@ -508,6 +555,263 @@ class UIManager {
           rewardNotice.style.display = 'block';
         }
       });
+    }
+  }
+
+  /**
+   * In-Game Arcane Mystery Rift Controller
+   * Appears during gameplay: provides bonus score, bonus moves & relic fragments
+   * Scales in difficulty and timer countdown per level!
+   */
+  async openInGameMysteryModal(data = {}) {
+    if (!this.inGameMysteryModal) return;
+
+    // Determine level difficulty
+    const currentLvl = data.level || this.gameEngine.currentLevel || { id: 1 };
+    const levelId = Math.max(1, parseInt(currentLvl.id, 10) || 1);
+
+    // Dynamic Level Difficulty Scaling:
+    // Level 1 starts with 45s, decreasing by 3s per level down to 12s on Level 12 Boss!
+    const timeLimit = Math.max(12, 45 - (levelId - 1) * 3);
+    const bonusScore = 500 + Math.max(0, (levelId - 1) * 50);
+    const bonusFragments = 30 + Math.max(0, (levelId - 1) * 5);
+
+    // Update Difficulty Badges & Header
+    const badgeEl = document.getElementById('mystery-difficulty-badge');
+    const timerLabel = document.getElementById('mystery-timer-label');
+    const timerBar = document.getElementById('mystery-timer-bar');
+    const descEl = document.getElementById('mystery-rift-desc');
+    const loadingEl = document.getElementById('in-game-mystery-loading');
+    const bodyEl = document.getElementById('in-game-mystery-body');
+    const noticeEl = document.getElementById('in-game-mystery-notice');
+    const inputEl = document.getElementById('in-game-mystery-answer');
+    const castBtn = document.getElementById('btn-cast-mystery-answer');
+    const imgEl = document.getElementById('in-game-mystery-img');
+
+    if (badgeEl) {
+      let badgeClass = 'badge-success';
+      let title = `Level ${levelId}: Novice Rift (${timeLimit}s)`;
+      if (levelId >= 4 && levelId <= 7) {
+        badgeClass = 'badge-warning';
+        title = `Level ${levelId}: Adept Trial (${timeLimit}s)`;
+      } else if (levelId >= 8 && levelId <= 11) {
+        badgeClass = 'badge-danger';
+        title = `Level ${levelId}: Scholar Crucible (${timeLimit}s)`;
+      } else if (levelId >= 12) {
+        badgeClass = 'badge-danger';
+        title = `Level 12: Apex Boss Rift (${timeLimit}s - Extreme)`;
+      }
+      badgeEl.className = `badge ${badgeClass}`;
+      badgeEl.textContent = title;
+    }
+
+    if (descEl) {
+      descEl.textContent = `Decipher the equation within ${timeLimit}s to unlock +${bonusScore} Battle Score, +2 Extra Moves & +${bonusFragments} Relic Fragments!`;
+    }
+
+    if (timerLabel) timerLabel.textContent = `⏳ ${timeLimit}s`;
+    if (timerBar) {
+      timerBar.style.width = '100%';
+      timerBar.style.background = '#10b981';
+    }
+
+    if (noticeEl) noticeEl.style.display = 'none';
+    if (inputEl) {
+      inputEl.value = '';
+      inputEl.disabled = false;
+    }
+    if (castBtn) {
+      castBtn.disabled = false;
+      castBtn.textContent = 'Cast Answer ⚡';
+    }
+    document.querySelectorAll('#in-game-mystery-modal .btn-num-key').forEach(b => b.classList.remove('active'));
+
+    // Display loading spinner while fetching puzzle
+    if (loadingEl) loadingEl.style.display = 'block';
+    if (bodyEl) bodyEl.style.display = 'none';
+
+    // Show modal overlay
+    this.inGameMysteryModal.classList.add('modal-open');
+
+    // Fetch challenge from Banana API
+    const result = await this.apiClient.getBananaChallenge();
+
+    if (loadingEl) loadingEl.style.display = 'none';
+
+    if (result.success && result.challenge) {
+      this.activeInGameChallenge = {
+        ...result.challenge,
+        levelId,
+        bonusScore,
+        bonusFragments,
+        timeLimit
+      };
+
+      if (imgEl) imgEl.src = result.challenge.question;
+      if (bodyEl) bodyEl.style.display = 'block';
+      if (inputEl) inputEl.focus();
+
+      // Start Countdown Timer
+      this.startInGameMysteryCountdown(timeLimit);
+    } else {
+      // Graceful notice if external service unreachable
+      if (noticeEl) {
+        noticeEl.className = 'mystery-notice alert-warning';
+        noticeEl.innerHTML = `<strong>⚠️ Rift Sealed:</strong> ${result.error || 'The external Banana API is momentarily unavailable. Continue your battle!'}`;
+        noticeEl.style.display = 'block';
+      }
+    }
+  }
+
+  /**
+   * Start countdown timer for in-game mystery challenge
+   */
+  startInGameMysteryCountdown(totalSeconds) {
+    if (this.inGameMysteryTimer) {
+      clearInterval(this.inGameMysteryTimer);
+      this.inGameMysteryTimer = null;
+    }
+
+    let remaining = totalSeconds;
+    const timerLabel = document.getElementById('mystery-timer-label');
+    const timerBar = document.getElementById('mystery-timer-bar');
+
+    this.inGameMysteryTimer = setInterval(() => {
+      remaining--;
+
+      if (timerLabel) timerLabel.textContent = `⏳ ${remaining}s`;
+      if (timerBar) {
+        const pct = Math.max(0, (remaining / totalSeconds) * 100);
+        timerBar.style.width = `${pct}%`;
+        if (pct < 30) {
+          timerBar.style.background = '#ef4444';
+        } else if (pct < 60) {
+          timerBar.style.background = '#f59e0b';
+        }
+      }
+
+      if (remaining <= 0) {
+        clearInterval(this.inGameMysteryTimer);
+        this.inGameMysteryTimer = null;
+        this.handleInGameMysteryTimeout();
+      }
+    }, 1000);
+  }
+
+  /**
+   * Handle timer expiration
+   */
+  handleInGameMysteryTimeout() {
+    const noticeEl = document.getElementById('in-game-mystery-notice');
+    const castBtn = document.getElementById('btn-cast-mystery-answer');
+    const inputEl = document.getElementById('in-game-mystery-answer');
+
+    if (castBtn) castBtn.disabled = true;
+    if (inputEl) inputEl.disabled = true;
+
+    if (noticeEl) {
+      noticeEl.className = 'mystery-notice alert-warning';
+      noticeEl.innerHTML = `<strong>⌛ Time's Up!</strong> The arcane rift collapsed before it could be deciphered. Resuming battle...`;
+      noticeEl.style.display = 'block';
+    }
+
+    // Auto close after 1.5 seconds so player resumes game seamlessly
+    setTimeout(() => {
+      this.closeInGameMysteryModal();
+    }, 1500);
+  }
+
+  /**
+   * Close in-game mystery rift modal and resume gameplay seamlessly
+   */
+  closeInGameMysteryModal() {
+    if (this.inGameMysteryTimer) {
+      clearInterval(this.inGameMysteryTimer);
+      this.inGameMysteryTimer = null;
+    }
+
+    if (this.inGameMysteryModal) {
+      this.inGameMysteryModal.classList.remove('modal-open');
+    }
+
+    this.activeInGameChallenge = null;
+  }
+
+  /**
+   * Cast player answer for in-game mystery rift
+   */
+  async handleCastInGameMysteryAnswer() {
+    if (!this.activeInGameChallenge) return;
+
+    const inputEl = document.getElementById('in-game-mystery-answer');
+    const castBtn = document.getElementById('btn-cast-mystery-answer');
+    const noticeEl = document.getElementById('in-game-mystery-notice');
+    const answer = inputEl ? inputEl.value.trim() : '';
+
+    if (answer === '') {
+      if (inputEl) inputEl.focus();
+      return;
+    }
+
+    // Stop timer while verifying
+    if (this.inGameMysteryTimer) {
+      clearInterval(this.inGameMysteryTimer);
+      this.inGameMysteryTimer = null;
+    }
+
+    if (castBtn) {
+      castBtn.disabled = true;
+      castBtn.textContent = 'Channeling...';
+    }
+
+    const { challengeId, levelId } = this.activeInGameChallenge;
+    const result = await this.apiClient.verifyBananaAnswer(challengeId, answer, levelId);
+
+    if (result.success && result.isCorrect) {
+      // Award rewards in active battle
+      this.gameEngine.applyMysteryRiftReward(result);
+      if (this.relicManager) {
+        this.relicManager.addFragments(result.fragmentsAwarded || 30, 'In-Game Mystery Rift');
+      }
+
+      // Mark rift button in HUD as completed
+      const riftBtn = document.getElementById('btn-summon-rift');
+      if (riftBtn) {
+        riftBtn.textContent = 'Rift Mastered ✨';
+        riftBtn.style.animation = 'none';
+        riftBtn.style.opacity = '0.7';
+      }
+
+      if (noticeEl) {
+        noticeEl.className = 'mystery-notice alert-success';
+        noticeEl.innerHTML = `
+          <strong>🎉 Arcane Mystery Solved!</strong><br/>
+          +${result.pointsAwarded || 500} Battle Score, +${result.movesAwarded || 2} Extra Moves & +${result.fragmentsAwarded || 30} Relic Fragments granted!
+        `;
+        noticeEl.style.display = 'block';
+      }
+
+      // Close modal after 1.8 seconds so player can enjoy their bonus moves
+      setTimeout(() => {
+        this.closeInGameMysteryModal();
+      }, 1800);
+    } else {
+      if (noticeEl) {
+        noticeEl.className = 'mystery-notice alert-danger';
+        noticeEl.innerHTML = `
+          <strong>❌ The magic seal rejected the solution.</strong><br/>
+          The rift closed safely. Continuing your battle...
+        `;
+        noticeEl.style.display = 'block';
+      }
+
+      if (castBtn) castBtn.disabled = true;
+      if (inputEl) inputEl.disabled = true;
+
+      // Close modal after 1.5 seconds and continue playing!
+      setTimeout(() => {
+        this.closeInGameMysteryModal();
+      }, 1500);
     }
   }
 

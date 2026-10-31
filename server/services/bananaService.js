@@ -120,9 +120,10 @@ class BananaService {
    * @param {string} challengeId
    * @param {string|number} submittedAnswer
    * @param {string} [userId] - Optional authenticated user ID
-   * @returns {Promise<{success: boolean, isCorrect: boolean, pointsAwarded?: number, fragmentsAwarded?: number, error?: string}>}
+   * @param {number} [levelId] - Current level ID for difficulty-scaled bonus
+   * @returns {Promise<{success: boolean, isCorrect: boolean, pointsAwarded?: number, fragmentsAwarded?: number, movesAwarded?: number, error?: string}>}
    */
-  async verifyAnswer(challengeId, submittedAnswer, userId = null) {
+  async verifyAnswer(challengeId, submittedAnswer, userId = null, levelId = 1) {
     if (!challengeId || typeof submittedAnswer === 'undefined') {
       return { success: false, error: 'Challenge ID and answer are required.' };
     }
@@ -154,9 +155,11 @@ class BananaService {
       };
     }
 
-    // Award bonus resources
-    const pointsAwarded = 500;
-    const fragmentsAwarded = 30;
+    // Award bonus resources scaled dynamically with level difficulty
+    const lvl = Math.max(1, parseInt(levelId, 10) || 1);
+    const pointsAwarded = 500 + Math.max(0, (lvl - 1) * 50);
+    const fragmentsAwarded = 30 + Math.max(0, (lvl - 1) * 5);
+    const movesAwarded = 2;
 
     // Persist rewards if user is authenticated
     if (userId) {
@@ -168,7 +171,8 @@ class BananaService {
       isCorrect: true,
       pointsAwarded,
       fragmentsAwarded,
-      message: 'Magnificent! You solved the mystery equation and earned bonus points and relic fragments.'
+      movesAwarded,
+      message: `Magnificent! You solved the mystery equation and unlocked +${pointsAwarded} points, +${movesAwarded} extra moves, and +${fragmentsAwarded} relic fragments!`
     };
   }
 
@@ -177,15 +181,17 @@ class BananaService {
    */
   async persistRewards(userId, points, fragments) {
     try {
-      if (isUsingMemoryStore()) {
+      const mongoose = require('mongoose');
+      if (isUsingMemoryStore() || !mongoose.Types.ObjectId.isValid(userId)) {
         const user = await memoryStore.findUserById(userId);
         if (user) {
           user.totalScore = (user.totalScore || 0) + points;
           user.relicFragments = (user.relicFragments || 0) + fragments;
+          user.bananaSolved = (user.bananaSolved || 0) + 1;
         }
       } else {
         await User.findByIdAndUpdate(userId, {
-          $inc: { totalScore: points, relicFragments: fragments }
+          $inc: { totalScore: points, relicFragments: fragments, bananaSolved: 1 }
         });
       }
     } catch (err) {

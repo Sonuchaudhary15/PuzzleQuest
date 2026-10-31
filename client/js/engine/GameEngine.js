@@ -116,6 +116,8 @@ class GameEngine {
     this.moveHistory = [];
     this.startedAt = Date.now();
     this.maxComboStreak = 0;
+    this.mysteryRiftTriggered = false;
+    this.mysteryRiftCompleted = false;
 
     // Setup objectives
     this.mainObjective = {
@@ -178,6 +180,16 @@ class GameEngine {
           initialMoves: this.initialMoves
         });
         this.eventBus.emit('game:turn_ended');
+
+        // Check for in-game mystery rift event (triggers midway through available moves once per match)
+        if (!this.mysteryRiftTriggered && !this.mysteryRiftCompleted && this.movesRemaining <= Math.floor(this.initialMoves / 2) && this.movesRemaining > 1) {
+          this.mysteryRiftTriggered = true;
+          this.eventBus.emit('game:mystery_rift_triggered', {
+            level: this.currentLevel,
+            movesRemaining: this.movesRemaining,
+            manual: false
+          });
+        }
       }
 
       // Check if win or lose
@@ -185,6 +197,45 @@ class GameEngine {
     }
 
     return result;
+  }
+
+  /**
+   * Manually trigger Arcane Mystery Rift during battle
+   */
+  triggerMysteryRiftManual() {
+    if (this.gameState !== 'PLAYING') return false;
+    if (this.mysteryRiftCompleted) return false;
+    this.mysteryRiftTriggered = true;
+    if (this.eventBus) {
+      this.eventBus.emit('game:mystery_rift_triggered', {
+        level: this.currentLevel,
+        movesRemaining: this.movesRemaining,
+        manual: true
+      });
+    }
+    return true;
+  }
+
+  /**
+   * Apply Mystery Challenge rewards directly to active battle and inventory
+   */
+  applyMysteryRiftReward(reward = {}) {
+    this.mysteryRiftCompleted = true;
+    const bonusScore = reward.pointsAwarded || 500;
+    const bonusMoves = reward.movesAwarded || 2;
+    this.score += bonusScore;
+    this.movesRemaining += bonusMoves;
+
+    if (this.eventBus) {
+      this.eventBus.emit('score:updated', { score: this.score, added: bonusScore });
+      this.eventBus.emit('game:move_used', {
+        movesRemaining: this.movesRemaining,
+        initialMoves: this.initialMoves
+      });
+    }
+
+    // Recheck game status with updated score
+    this.checkGameStatus();
   }
 
   /**

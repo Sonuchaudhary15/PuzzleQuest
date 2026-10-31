@@ -117,7 +117,7 @@ router.get('/', async (req, res) => {
         totalScore: u.totalScore || 0,
         totalStars: u.totalStars || 0,
         levelsCleared: u.levelsCleared || 0,
-        bananaSolved: Math.max(1, Math.floor((u.totalScore || 0) / 2500)),
+        bananaSolved: typeof u.bananaSolved === 'number' ? u.bananaSolved : Math.max(0, Math.floor((u.totalScore || 0) / 2500)),
         highestCombo: Math.min(8, Math.max(3, Math.floor((u.totalStars || 0) / 2) + 2)),
         relicFragments: u.relicFragments || 50,
         favoriteRelic: 'Sunbeam Lance',
@@ -133,7 +133,7 @@ router.get('/', async (req, res) => {
     } else {
       // Fetch live MongoDB users
       const dbUsers = await User.find({})
-        .select('username adventurerTitle totalScore totalStars levelsCleared relicFragments createdAt')
+        .select('username adventurerTitle totalScore totalStars levelsCleared relicFragments bananaSolved createdAt')
         .lean();
 
       if (dbUsers && dbUsers.length > 0) {
@@ -145,7 +145,7 @@ router.get('/', async (req, res) => {
           totalScore: u.totalScore || 0,
           totalStars: u.totalStars || 0,
           levelsCleared: u.levelsCleared || 0,
-          bananaSolved: Math.max(1, Math.floor((u.totalScore || 0) / 2500)),
+          bananaSolved: typeof u.bananaSolved === 'number' ? u.bananaSolved : Math.max(0, Math.floor((u.totalScore || 0) / 2500)),
           highestCombo: Math.min(8, Math.max(3, Math.floor((u.totalStars || 0) / 2) + 2)),
           relicFragments: u.relicFragments || 50,
           favoriteRelic: 'Sunbeam Lance',
@@ -207,7 +207,7 @@ router.get('/dossier/:username', async (req, res) => {
             totalScore: memUser.totalScore || 0,
             totalStars: memUser.totalStars || 0,
             levelsCleared: memUser.levelsCleared || 0,
-            bananaSolved: Math.max(1, Math.floor((memUser.totalScore || 0) / 2500)),
+            bananaSolved: typeof memUser.bananaSolved === 'number' ? memUser.bananaSolved : Math.max(0, Math.floor((memUser.totalScore || 0) / 2500)),
             highestCombo: 5,
             relicFragments: memUser.relicFragments || 50,
             favoriteRelic: 'Sunbeam Lance',
@@ -225,7 +225,7 @@ router.get('/dossier/:username', async (req, res) => {
             totalScore: dbUser.totalScore || 0,
             totalStars: dbUser.totalStars || 0,
             levelsCleared: dbUser.levelsCleared || 0,
-            bananaSolved: Math.max(1, Math.floor((dbUser.totalScore || 0) / 2500)),
+            bananaSolved: typeof dbUser.bananaSolved === 'number' ? dbUser.bananaSolved : Math.max(0, Math.floor((dbUser.totalScore || 0) / 2500)),
             highestCombo: 5,
             relicFragments: dbUser.relicFragments || 50,
             favoriteRelic: 'Sunbeam Lance',

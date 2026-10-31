@@ -188,6 +188,7 @@
           </div>
 
           <div class="hud-actions">
+            <button id="btn-summon-rift" class="btn btn-gold btn-sm" title="Summon Arcane Mystery Challenge Rift">🌌 Arcane Rift</button>
             <button id="btn-game-restart" class="btn btn-secondary btn-sm">Restart</button>
             <button id="btn-game-map" class="btn btn-outline btn-sm">Map</button>
           </div>
@@ -488,6 +489,79 @@
       </div>
       <div id="dossier-body">
         <!-- Populated dynamically by UIManager -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== IN-GAME MYSTERY CHALLENGE RIFT MODAL ==================== -->
+  <div id="in-game-mystery-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="mystery-rift-title">
+    <div class="modal-content mystery-modal-content">
+      <div class="rift-modal-header">
+        <div class="mystery-rift-badge">🌌 ARCANE MYSTERY RIFT</div>
+        <button id="btn-close-mystery-top" class="btn-icon" aria-label="Dismiss Rift" style="border: none; background: transparent; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary);">&times;</button>
+      </div>
+
+      <h3 id="mystery-rift-title" class="modal-title" style="color: var(--color-sapphire); margin-bottom: 4px;">
+        MYSTERY CHALLENGE
+      </h3>
+      <p id="mystery-rift-desc" class="text-secondary" style="font-size: 0.85rem; margin-bottom: 12px;">
+        Decipher the visual fruit rune equation to harvest bonus battle score, bonus moves & relic fragments!
+      </p>
+
+      <!-- Dynamic Difficulty & Countdown Timer Bar -->
+      <div class="mystery-timer-container">
+        <div class="mystery-timer-header">
+          <span id="mystery-difficulty-badge" class="badge badge-warning">Level 1: Novice Rift</span>
+          <span id="mystery-timer-label" class="mystery-timer-text">⏳ 45s</span>
+        </div>
+        <div class="mystery-timer-track">
+          <div id="mystery-timer-bar" class="mystery-timer-bar" style="width: 100%;"></div>
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div id="in-game-mystery-loading" class="mystery-loading" style="display: none; padding: 25px; text-align: center;">
+        <div class="spinner"></div>
+        <div style="margin-top: 10px; color: var(--text-secondary); font-size: 0.9rem;">Connecting to University Banana API...</div>
+      </div>
+
+      <!-- Main Challenge Area -->
+      <div id="in-game-mystery-body" class="mystery-body">
+        <div class="mystery-img-frame">
+          <img id="in-game-mystery-img" src="" alt="Banana Mystery Challenge Equation" />
+        </div>
+
+        <div class="mystery-controls">
+          <div style="font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; color: var(--text-secondary);">
+            Tap or enter missing digit (0 - 9):
+          </div>
+
+          <!-- Quick Numeric Keypad (0 - 9) -->
+          <div class="mystery-keypad-row">
+            <button type="button" class="btn-num-key" data-val="0">0</button>
+            <button type="button" class="btn-num-key" data-val="1">1</button>
+            <button type="button" class="btn-num-key" data-val="2">2</button>
+            <button type="button" class="btn-num-key" data-val="3">3</button>
+            <button type="button" class="btn-num-key" data-val="4">4</button>
+            <button type="button" class="btn-num-key" data-val="5">5</button>
+            <button type="button" class="btn-num-key" data-val="6">6</button>
+            <button type="button" class="btn-num-key" data-val="7">7</button>
+            <button type="button" class="btn-num-key" data-val="8">8</button>
+            <button type="button" class="btn-num-key" data-val="9">9</button>
+          </div>
+
+          <div class="mystery-input-action-row" style="margin-top: 10px;">
+            <input type="number" id="in-game-mystery-answer" min="0" max="9" placeholder="?" class="form-input mystery-digit-input" />
+            <button id="btn-cast-mystery-answer" class="btn btn-gold">Cast Answer ⚡</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Result Banner -->
+      <div id="in-game-mystery-notice" class="mystery-notice" style="display: none; margin-top: 14px;"></div>
+
+      <div class="modal-actions" style="margin-top: 16px;">
+        <button id="btn-skip-mystery" class="btn btn-secondary">Continue Playing</button>
       </div>
     </div>
   </div>
