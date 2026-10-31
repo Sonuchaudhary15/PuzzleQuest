@@ -1044,18 +1044,38 @@ class UIManager {
     if (!grid || !relicMgr) return;
     grid.innerHTML = '';
 
-    // Refresh daily forge badge on screen open
+    // Determine current daily forge count
+    let usedCount = 0;
+    if (this.apiClient.isAuthenticated() && typeof this._serverDailyForgeCount === 'number') {
+      usedCount = this._serverDailyForgeCount;
+    } else if (typeof this.getDailyForgeCount === 'function') {
+      usedCount = this.getDailyForgeCount();
+    }
+    const avail = Math.max(0, 2 - usedCount);
+    const limitReached = avail <= 0;
+
+    // Refresh daily forge badge on screen header
     const forgeBadgeEl = document.getElementById('daily-forge-count-display');
     if (forgeBadgeEl) {
-      let usedCount = 0;
-      if (this.apiClient.isAuthenticated() && typeof this._serverDailyForgeCount === 'number') {
-        usedCount = this._serverDailyForgeCount;
-      } else if (typeof this.getDailyForgeCount === 'function') {
-        usedCount = this.getDailyForgeCount();
-      }
-      const avail = Math.max(0, 2 - usedCount);
-      forgeBadgeEl.textContent = avail > 0 ? `${avail} / 2 Available` : '0 / 2 — Limit Reached Today';
-      forgeBadgeEl.style.color = avail > 0 ? '#b45309' : '#dc2626';
+      forgeBadgeEl.textContent = limitReached ? '0 / 2 — Daily Limit Reached' : `${avail} / 2 Available`;
+      forgeBadgeEl.style.color = limitReached ? '#dc2626' : '#b45309';
+      forgeBadgeEl.style.fontWeight = '700';
+    }
+
+    // Toggle prominent Daily Allowance Reached banner
+    const limitNoticeBanner = document.getElementById('relic-daily-limit-notice');
+    if (limitNoticeBanner) {
+      limitNoticeBanner.style.display = limitReached ? 'flex' : 'none';
+    }
+
+    // If authenticated and server count not cached yet, sync asynchronously
+    if (this.apiClient.isAuthenticated() && typeof this._serverDailyForgeCount !== 'number') {
+      this.apiClient.getRelics().then(data => {
+        if (data && typeof data.dailyForgeCount === 'number') {
+          this._serverDailyForgeCount = data.dailyForgeCount;
+          this.updateRelicFusionScreen();
+        }
+      }).catch(() => {});
     }
 
     Object.keys(RelicManager.RELIC_DEFINITIONS).forEach(key => {
@@ -1065,6 +1085,11 @@ class UIManager {
 
       const card = document.createElement('div');
       card.className = 'relic-craft-card';
+      const buttonLabel = limitReached
+        ? '🔒 Daily Limit Reached (2/2)'
+        : 'Fuse Relic';
+      const buttonDisabledClass = (!canAfford || limitReached) ? 'btn-disabled' : '';
+
       card.innerHTML = `
         <div class="relic-card-icon">${def.icon}</div>
         <h3 class="relic-card-title">${def.name}</h3>
@@ -1073,12 +1098,19 @@ class UIManager {
           <span>In Inventory: <strong>${count}</strong></span>
           <span class="cost-tag">Cost: <strong>${def.cost} 💎</strong></span>
         </div>
-        <button class="btn btn-primary btn-craft ${!canAfford ? 'btn-disabled' : ''}" data-relic="${def.id}">
-          Fuse Relic
+        <button class="btn btn-primary btn-craft ${buttonDisabledClass}" data-relic="${def.id}">
+          ${buttonLabel}
         </button>
       `;
 
       card.querySelector('.btn-craft').addEventListener('click', () => {
+        if (limitReached) {
+          if (this.screenManager) {
+            this.screenManager.showToast('Your daily allowance has been reached! (2/2 Used Today. Resets tomorrow!)', 'warning', 3500);
+          }
+          this.openForgeTrialModal(def);
+          return;
+        }
         // Fuse Relic requires solving the Arcane Banana Equation
         this.openForgeTrialModal(def);
       });
@@ -1148,9 +1180,13 @@ class UIManager {
 
     // If daily limit exhausted, show locked notice and bail
     if (remaining <= 0) {
+      if (limitEl) {
+        limitEl.textContent = 'Daily Allowance: 0/2 Available (Limit Reached)';
+        limitEl.className = 'badge badge-danger';
+      }
       if (noticeEl) {
         noticeEl.className = 'mystery-notice alert-warning';
-        noticeEl.innerHTML = '<strong>\uD83D\uDD12 Daily Forge Limit Reached (2/2 Used Today).</strong><br/>The Arcane Forge cools until tomorrow. Come back then!';
+        noticeEl.innerHTML = '<strong>🔒 Your Daily Allowance Has Been Reached!</strong><br/>You have completed all 2 relic fusions for today (<strong>2/2 Used Today</strong>).<br/><span style="font-size:0.82rem; opacity:0.9;">The Arcane Forge cools until tomorrow. Come back then!</span>';
         noticeEl.style.display = 'block';
       }
       if (bodyEl)    bodyEl.style.display    = 'none';
@@ -1247,9 +1283,12 @@ class UIManager {
 
         if (noticeEl) {
           noticeEl.className = 'mystery-notice alert-success';
-          noticeEl.innerHTML = '<strong>\uD83D\uDD25 Forge Successful!</strong><br/>'
+          const allowanceNotice = rem === 0
+            ? '<br/><div style="margin-top:10px; padding:8px 12px; background:#fff1f2; border:1.5px solid #f43f5e; border-radius:8px; color:#9f1239; font-weight:700; font-size:0.85rem;">🔒 Your daily allowance has been reached! (2/2 Used Today. Resets tomorrow!)</div>'
+            : ('<span style="font-size:0.8rem;opacity:0.85;">Daily fusions remaining today: <strong>' + rem + '/2</strong></span>');
+          noticeEl.innerHTML = '<strong>🔥 Forge Successful!</strong><br/>'
             + '<strong>' + (relicDef.icon || '') + ' ' + relicDef.name + '</strong> has been fused into your inventory!<br/>'
-            + '<span style="font-size:0.8rem;opacity:0.85;">Daily fusions remaining today: <strong>' + rem + '/2</strong></span>';
+            + allowanceNotice;
           noticeEl.style.display = 'block';
         }
         if (bodyEl) bodyEl.style.display = 'none';
@@ -1307,9 +1346,12 @@ class UIManager {
         }
         if (noticeEl) {
           noticeEl.className = 'mystery-notice alert-success';
-          noticeEl.innerHTML = '<strong>\uD83D\uDD25 Forge Successful!</strong><br/>'
+          const allowanceNotice = rem === 0
+            ? '<br/><div style="margin-top:10px; padding:8px 12px; background:#fff1f2; border:1.5px solid #f43f5e; border-radius:8px; color:#9f1239; font-weight:700; font-size:0.85rem;">🔒 Your daily allowance has been reached! (2/2 Used Today. Resets tomorrow!)</div>'
+            : ('<span style="font-size:0.8rem;opacity:0.85;">Remaining today: <strong>' + rem + '/2</strong></span>');
+          noticeEl.innerHTML = '<strong>🔥 Forge Successful!</strong><br/>'
             + '<strong>' + (relicDef.icon || '') + ' ' + relicDef.name + '</strong> forged into local inventory!<br/>'
-            + '<span style="font-size:0.8rem;opacity:0.85;">Sign in to persist your collection. Remaining today: <strong>' + rem + '/2</strong></span>';
+            + allowanceNotice;
           noticeEl.style.display = 'block';
         }
         if (bodyEl) bodyEl.style.display = 'none';
