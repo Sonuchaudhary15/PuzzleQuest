@@ -191,6 +191,24 @@ class ApiClient {
   }
 
   /**
+   * Fuse a relic through the Arcane Forge Banana Trial (max 2 per day)
+   */
+  async forgeRelicWithTrial(relicType, challengeId, answer) {
+    try {
+      const res = await fetch(`${this.baseUrl}/api/relics/forge-trial`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify({ relicType, challengeId, answer })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Forge trial verification failed');
+      return { success: true, ...data };
+    } catch (err) {
+      return { success: false, error: err.message };
+    }
+  }
+
+  /**
    * Fetch online leaderboard with sorting support
    */
   async getLeaderboard(limit = 25, sortBy = 'score') {

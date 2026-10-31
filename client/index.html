@@ -248,12 +248,19 @@
       <div class="relics-header">
         <div>
           <h2 class="brand-title">RELIC FUSION FORGE</h2>
-          <p class="text-secondary">Combine crystal fragments collected from battles and mystery challenges into arcane relics.</p>
+          <p class="text-secondary">Solve the Arcane Banana Equation to fuse legendary relics into your inventory. (Limit: 2 per day)</p>
         </div>
-        <div class="fragment-balance-badge">
-          <span>Relic Fragments:</span>
-          <span id="relic-fragment-balance" class="text-gold">50</span>
-          <span>💎</span>
+        <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+          <div class="daily-forge-badge" style="background: #fffbeb; border: 1.5px solid #f59e0b; padding: 6px 14px; border-radius: 20px; font-weight: 700; font-size: 0.85rem; color: #92400e;">
+            <span>Daily Fusions: </span>
+            <span id="daily-forge-count-display" style="color: #b45309;">2 / 2 Available</span>
+            <span>⚡</span>
+          </div>
+          <div class="fragment-balance-badge">
+            <span>Relic Fragments:</span>
+            <span id="relic-fragment-balance" class="text-gold">50</span>
+            <span>💎</span>
+          </div>
         </div>
       </div>
 
@@ -608,6 +615,77 @@
 
       <div class="modal-actions" style="margin-top: 16px;">
         <button id="btn-skip-mystery" class="btn btn-secondary">Continue Playing</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== ARCANE RELIC FORGE TRIAL MODAL ==================== -->
+  <div id="forge-trial-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="forge-modal-title">
+    <div class="modal-content mystery-modal-content">
+      <div class="rift-modal-header">
+        <div class="mystery-rift-badge" style="background: linear-gradient(135deg, #7c3aed, #6d28d9); color: #ede9fe;">
+          🔮 ARCANE FORGE TRIAL
+        </div>
+        <button id="btn-close-forge-modal" class="btn-icon" aria-label="Cancel Forge Trial" style="border: none; background: transparent; font-size: 1.5rem; cursor: pointer; color: var(--text-secondary);">&times;</button>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+        <span id="forge-relic-target-icon" style="font-size: 2rem;">⚡</span>
+        <div>
+          <h3 id="forge-modal-title" class="modal-title" style="color: var(--color-forest); margin: 0; font-size: 1.25rem;">
+            FUSING SUNBEAM LANCE
+          </h3>
+          <span id="forge-daily-limit-indicator" class="badge badge-warning" style="font-size: 0.75rem;">Daily Allowance: 2/2 Available</span>
+        </div>
+      </div>
+
+      <p id="forge-modal-desc" class="text-secondary" style="font-size: 0.85rem; margin-bottom: 12px;">
+        Solve this University Banana fruit rune equation to awaken and forge your relic into battle inventory!
+      </p>
+
+      <!-- Loading State -->
+      <div id="forge-modal-loading" class="mystery-loading" style="display: none; padding: 25px; text-align: center;">
+        <div class="spinner"></div>
+        <div style="margin-top: 10px; color: var(--text-secondary); font-size: 0.9rem;">Summoning Arcane Forge Runes from University Banana API...</div>
+      </div>
+
+      <!-- Main Challenge Body -->
+      <div id="forge-modal-body" class="mystery-body">
+        <div class="mystery-img-frame">
+          <img id="forge-modal-img" src="" alt="Banana Forge Puzzle Equation" />
+        </div>
+
+        <div class="mystery-controls">
+          <div style="font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; color: var(--text-secondary);">
+            Enter the missing digit (0 - 9) to ignite the forge:
+          </div>
+
+          <!-- Quick Numeric Keypad (0 - 9) -->
+          <div class="mystery-keypad-row" id="forge-keypad-row">
+            <button type="button" class="btn-num-key btn-forge-key" data-val="0">0</button>
+            <button type="button" class="btn-num-key btn-forge-key" data-val="1">1</button>
+            <button type="button" class="btn-num-key btn-forge-key" data-val="2">2</button>
+            <button type="button" class="btn-num-key btn-forge-key" data-val="3">3</button>
+            <button type="button" class="btn-num-key btn-forge-key" data-val="4">4</button>
+            <button type="button" class="btn-num-key btn-forge-key" data-val="5">5</button>
+            <button type="button" class="btn-num-key btn-forge-key" data-val="6">6</button>
+            <button type="button" class="btn-num-key btn-forge-key" data-val="7">7</button>
+            <button type="button" class="btn-num-key btn-forge-key" data-val="8">8</button>
+            <button type="button" class="btn-num-key btn-forge-key" data-val="9">9</button>
+          </div>
+
+          <div class="mystery-input-action-row" style="margin-top: 10px;">
+            <input type="number" id="forge-answer-input" min="0" max="9" placeholder="?" class="form-input mystery-digit-input" />
+            <button id="btn-submit-forge-answer" class="btn btn-gold">Ignite Forge ⚡</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Result Banner -->
+      <div id="forge-modal-notice" class="mystery-notice" style="display: none; margin-top: 14px;"></div>
+
+      <div class="modal-actions" style="margin-top: 16px;">
+        <button id="btn-cancel-forge-modal" class="btn btn-secondary">Cancel</button>
       </div>
     </div>
   </div>

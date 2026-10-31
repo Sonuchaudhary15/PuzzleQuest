@@ -51,8 +51,10 @@ class UIManager {
     this.tutorialModal = document.getElementById('tutorial-modal');
     this.inGameMysteryModal = document.getElementById('in-game-mystery-modal');
     this.btnSummonRift = document.getElementById('btn-summon-rift');
+    this.forgeTrialModal = document.getElementById('forge-trial-modal');
     this.inGameMysteryTimer = null;
     this.activeInGameChallenge = null;
+    this.activeForgeTrial = null;
 
     // Map container
     this.mapContainer = document.getElementById('adventure-map-container');
@@ -321,6 +323,25 @@ class UIManager {
         e.preventDefault();
         this.handleCastInGameMysteryAnswer();
       }
+    });
+
+    // ─── Arcane Relic Forge Trial Modal Controls ───────────────────────────
+    document.getElementById('btn-close-forge-modal')?.addEventListener('click', () => this.closeForgeTrialModal());
+    document.getElementById('btn-cancel-forge-modal')?.addEventListener('click', () => this.closeForgeTrialModal());
+    document.querySelectorAll('#forge-trial-modal .btn-forge-key').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const val = e.currentTarget.getAttribute('data-val');
+        const input = document.getElementById('forge-answer-input');
+        if (input) {
+          input.value = val;
+          document.querySelectorAll('#forge-trial-modal .btn-forge-key').forEach(b => b.classList.remove('active'));
+          e.currentTarget.classList.add('active');
+        }
+      });
+    });
+    document.getElementById('btn-submit-forge-answer')?.addEventListener('click', () => this.handleForgeTrialAnswer());
+    document.getElementById('forge-answer-input')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); this.handleForgeTrialAnswer(); }
     });
 
     // Navigation triggers
@@ -1023,6 +1044,20 @@ class UIManager {
     if (!grid || !relicMgr) return;
     grid.innerHTML = '';
 
+    // Refresh daily forge badge on screen open
+    const forgeBadgeEl = document.getElementById('daily-forge-count-display');
+    if (forgeBadgeEl) {
+      let usedCount = 0;
+      if (this.apiClient.isAuthenticated() && typeof this._serverDailyForgeCount === 'number') {
+        usedCount = this._serverDailyForgeCount;
+      } else if (typeof this.getDailyForgeCount === 'function') {
+        usedCount = this.getDailyForgeCount();
+      }
+      const avail = Math.max(0, 2 - usedCount);
+      forgeBadgeEl.textContent = avail > 0 ? `${avail} / 2 Available` : '0 / 2 — Limit Reached Today';
+      forgeBadgeEl.style.color = avail > 0 ? '#b45309' : '#dc2626';
+    }
+
     Object.keys(RelicManager.RELIC_DEFINITIONS).forEach(key => {
       const def = RelicManager.RELIC_DEFINITIONS[key];
       const count = relicMgr.inventory[key] || 0;
@@ -1043,29 +1078,241 @@ class UIManager {
         </button>
       `;
 
-      card.querySelector('.btn-craft').addEventListener('click', async () => {
-        if (!canAfford) {
-          alert(`You need ${def.cost} relic fragments to craft ${def.name}. Earn more by completing levels and solving Banana challenges!`);
-          return;
-        }
-
-        if (this.apiClient.isAuthenticated()) {
-          const res = await this.apiClient.craftRelic(def.id);
-          if (res.success) {
-            relicMgr.syncFromServer(res);
-            this.updateRelicFusionScreen();
-          } else {
-            alert(res.error);
-          }
-        } else {
-          // Local guest crafting
-          relicMgr.craftRelic(def.id);
-          this.updateRelicFusionScreen();
-        }
+      card.querySelector('.btn-craft').addEventListener('click', () => {
+        // Fuse Relic requires solving the Arcane Banana Equation
+        this.openForgeTrialModal(def);
       });
 
       grid.appendChild(card);
     });
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //  DAILY FORGE HELPERS  (localStorage for guest users)
+  // ═══════════════════════════════════════════════════════════════
+
+  getDailyForgeCount() {
+    try {
+      const raw = localStorage.getItem('pq_daily_forge');
+      if (!raw) return 0;
+      const obj = JSON.parse(raw);
+      const today = new Date().toISOString().split('T')[0];
+      return obj.date === today ? (obj.count || 0) : 0;
+    } catch (e) { return 0; }
+  }
+
+  setDailyForgeCount(count) {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      localStorage.setItem('pq_daily_forge', JSON.stringify({ date: today, count }));
+    } catch (e) {}
+  }
+
+  // ═══════════════════════════════════════════════════════════════
+  //  RELIC FORGE TRIAL — OPEN / CLOSE / SUBMIT
+  // ═══════════════════════════════════════════════════════════════
+
+  async openForgeTrialModal(def) {
+    if (!this.forgeTrialModal) return;
+
+    const iconEl    = document.getElementById('forge-relic-target-icon');
+    const titleEl   = document.getElementById('forge-modal-title');
+    const descEl    = document.getElementById('forge-modal-desc');
+    const limitEl   = document.getElementById('forge-daily-limit-indicator');
+    const loadingEl = document.getElementById('forge-modal-loading');
+    const bodyEl    = document.getElementById('forge-modal-body');
+    const noticeEl  = document.getElementById('forge-modal-notice');
+    const imgEl     = document.getElementById('forge-modal-img');
+    const inputEl   = document.getElementById('forge-answer-input');
+    const submitBtn = document.getElementById('btn-submit-forge-answer');
+
+    // Reset
+    if (iconEl)   iconEl.textContent  = def.icon || '\u26A1';
+    if (titleEl)  titleEl.textContent = 'FUSING ' + (def.name || 'RELIC').toUpperCase();
+    if (noticeEl) { noticeEl.style.display = 'none'; noticeEl.innerHTML = ''; }
+    if (inputEl)  { inputEl.value = ''; inputEl.disabled = false; }
+    if (submitBtn) submitBtn.disabled = false;
+    document.querySelectorAll('#forge-trial-modal .btn-forge-key').forEach(function(b) { b.classList.remove('active'); });
+
+    // Determine remaining fusions
+    let usedToday = 0;
+    if (this.apiClient.isAuthenticated() && typeof this._serverDailyForgeCount === 'number') {
+      usedToday = this._serverDailyForgeCount;
+    } else {
+      usedToday = this.getDailyForgeCount();
+    }
+    const remaining = Math.max(0, 2 - usedToday);
+
+    if (limitEl) limitEl.textContent = 'Daily Allowance: ' + remaining + '/2 Available';
+    if (descEl)  descEl.textContent  = 'Solve this University Banana fruit rune equation to awaken and forge ' + def.name + ' into your battle inventory!';
+
+    // If daily limit exhausted, show locked notice and bail
+    if (remaining <= 0) {
+      if (noticeEl) {
+        noticeEl.className = 'mystery-notice alert-warning';
+        noticeEl.innerHTML = '<strong>\uD83D\uDD12 Daily Forge Limit Reached (2/2 Used Today).</strong><br/>The Arcane Forge cools until tomorrow. Come back then!';
+        noticeEl.style.display = 'block';
+      }
+      if (bodyEl)    bodyEl.style.display    = 'none';
+      if (loadingEl) loadingEl.style.display = 'none';
+      this.activeForgeTrial = null;
+      this.forgeTrialModal.classList.add('modal-open');
+      return;
+    }
+
+    // Show loading and open modal
+    if (loadingEl) loadingEl.style.display = 'block';
+    if (bodyEl)    bodyEl.style.display    = 'none';
+    this.forgeTrialModal.classList.add('modal-open');
+
+    // Fetch Banana API equation
+    const result = await this.apiClient.getBananaChallenge();
+    if (loadingEl) loadingEl.style.display = 'none';
+
+    if (result.success && result.challenge) {
+      this.activeForgeTrial = Object.assign({}, result.challenge, { relicType: def.id, relicDef: def });
+      if (imgEl)    imgEl.src = result.challenge.question;
+      if (bodyEl)   bodyEl.style.display = 'block';
+      if (inputEl)  { inputEl.value = ''; inputEl.focus(); }
+    } else {
+      if (noticeEl) {
+        noticeEl.className = 'mystery-notice alert-warning';
+        noticeEl.innerHTML = '<strong>\u26A0\uFE0F Forge Sealed:</strong> ' + (result.error || 'Banana API unavailable. Try again shortly!');
+        noticeEl.style.display = 'block';
+      }
+      this.activeForgeTrial = null;
+    }
+  }
+
+  closeForgeTrialModal() {
+    if (this.forgeTrialModal) {
+      this.forgeTrialModal.classList.remove('modal-open');
+    }
+    this.activeForgeTrial = null;
+  }
+
+  async handleForgeTrialAnswer() {
+    if (!this.activeForgeTrial) return;
+
+    const inputEl   = document.getElementById('forge-answer-input');
+    const noticeEl  = document.getElementById('forge-modal-notice');
+    const submitBtn = document.getElementById('btn-submit-forge-answer');
+    const bodyEl    = document.getElementById('forge-modal-body');
+    const limitEl   = document.getElementById('forge-daily-limit-indicator');
+
+    const rawAnswer = inputEl ? inputEl.value.trim() : '';
+    if (rawAnswer === '') {
+      if (this.screenManager) this.screenManager.showToast('Enter a digit (0\u20139) first!', 'warning', 2000);
+      return;
+    }
+
+    const answer = parseInt(rawAnswer, 10);
+    const challengeId = this.activeForgeTrial.challengeId;
+    const relicType   = this.activeForgeTrial.relicType;
+    const relicDef    = this.activeForgeTrial.relicDef;
+
+    if (submitBtn) submitBtn.disabled = true;
+    if (noticeEl)  { noticeEl.style.display = 'none'; noticeEl.innerHTML = ''; }
+
+    // ── Authenticated: call server ──
+    if (this.apiClient.isAuthenticated()) {
+      const res = await this.apiClient.forgeRelicWithTrial(relicType, challengeId, answer);
+      if (submitBtn) submitBtn.disabled = false;
+
+      if (res && res.success) {
+        this._serverDailyForgeCount = typeof res.dailyForgeCount === 'number'
+          ? res.dailyForgeCount
+          : ((this._serverDailyForgeCount || 0) + 1);
+        const rem = Math.max(0, 2 - this._serverDailyForgeCount);
+
+        if (this.gameEngine && this.gameEngine.relicManager && this.gameEngine.relicManager.syncFromServer) {
+          this.gameEngine.relicManager.syncFromServer(res);
+        }
+
+        const globalBadge = document.getElementById('daily-forge-count-display');
+        if (globalBadge) {
+          globalBadge.textContent = rem > 0 ? (rem + ' / 2 Available') : '0 / 2 \u2014 Limit Reached Today';
+          globalBadge.style.color = rem > 0 ? '#b45309' : '#dc2626';
+        }
+        if (limitEl) limitEl.textContent = 'Daily Allowance: ' + rem + '/2 Available';
+
+        if (noticeEl) {
+          noticeEl.className = 'mystery-notice alert-success';
+          noticeEl.innerHTML = '<strong>\uD83D\uDD25 Forge Successful!</strong><br/>'
+            + '<strong>' + (relicDef.icon || '') + ' ' + relicDef.name + '</strong> has been fused into your inventory!<br/>'
+            + '<span style="font-size:0.8rem;opacity:0.85;">Daily fusions remaining today: <strong>' + rem + '/2</strong></span>';
+          noticeEl.style.display = 'block';
+        }
+        if (bodyEl) bodyEl.style.display = 'none';
+
+        setTimeout(function() {
+          this.closeForgeTrialModal();
+          this.updateRelicFusionScreen();
+        }.bind(this), 2200);
+
+      } else {
+        if (noticeEl) {
+          noticeEl.className = 'mystery-notice alert-danger';
+          noticeEl.innerHTML = '<strong>\u274C Forge Failed!</strong><br/>' + ((res && res.error) || 'Incorrect arcane equation. Try again!');
+          noticeEl.style.display = 'block';
+        }
+        const isLimit = res && res.dailyFusesRemaining === 0;
+        if (isLimit && bodyEl) bodyEl.style.display = 'none';
+      }
+
+    } else {
+      // ── Guest: local enforcement ──
+      const usedToday = this.getDailyForgeCount();
+      if (submitBtn) submitBtn.disabled = false;
+
+      if (usedToday >= 2) {
+        if (noticeEl) {
+          noticeEl.className = 'mystery-notice alert-warning';
+          noticeEl.innerHTML = '<strong>\uD83D\uDD12 Daily Forge Limit Reached (2/2).</strong><br/>Come back tomorrow!';
+          noticeEl.style.display = 'block';
+        }
+        if (bodyEl) bodyEl.style.display = 'none';
+        return;
+      }
+
+      const correctAnswer = this.activeForgeTrial.answer;
+      if (answer === correctAnswer) {
+        this.setDailyForgeCount(usedToday + 1);
+        const rem = Math.max(0, 2 - (usedToday + 1));
+
+        if (this.gameEngine && this.gameEngine.relicManager) {
+          const rm = this.gameEngine.relicManager;
+          rm.inventory[relicType] = (rm.inventory[relicType] || 0) + 1;
+          if (rm.saveToLocal) rm.saveToLocal();
+        }
+
+        const globalBadge = document.getElementById('daily-forge-count-display');
+        if (globalBadge) {
+          globalBadge.textContent = rem > 0 ? (rem + ' / 2 Available') : '0 / 2 \u2014 Limit Reached Today';
+          globalBadge.style.color = rem > 0 ? '#b45309' : '#dc2626';
+        }
+        if (noticeEl) {
+          noticeEl.className = 'mystery-notice alert-success';
+          noticeEl.innerHTML = '<strong>\uD83D\uDD25 Forge Successful!</strong><br/>'
+            + '<strong>' + (relicDef.icon || '') + ' ' + relicDef.name + '</strong> forged into local inventory!<br/>'
+            + '<span style="font-size:0.8rem;opacity:0.85;">Sign in to persist your collection. Remaining today: <strong>' + rem + '/2</strong></span>';
+          noticeEl.style.display = 'block';
+        }
+        if (bodyEl) bodyEl.style.display = 'none';
+
+        setTimeout(function() {
+          this.closeForgeTrialModal();
+          this.updateRelicFusionScreen();
+        }.bind(this), 2200);
+
+      } else {
+        if (noticeEl) {
+          noticeEl.className = 'mystery-notice alert-danger';
+          noticeEl.innerHTML = '<strong>\u274C Incorrect Equation.</strong><br/>The forge magic fizzled. Try a different digit!';
+          noticeEl.style.display = 'block';
+        }
+      }
+    }
   }
 
   updateFragmentDisplays(fragments) {

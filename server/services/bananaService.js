@@ -198,6 +198,19 @@ class BananaService {
       console.error('[BananaService] Failed to persist rewards to database:', err);
     }
   }
+
+  /**
+   * Test-only helper: seed a known challenge into the active cache.
+   * Allows unit tests to verify forge-trial logic without hitting the real API.
+   * Only call this from test files — never from production routes.
+   */
+  _seedTestChallenge(challengeId, solution, ttlMs = 600000) {
+    activeChallenges.set(challengeId, {
+      solution,
+      expiresAt: Date.now() + ttlMs,
+      userId: null
+    });
+  }
 }
 
 module.exports = new BananaService();
