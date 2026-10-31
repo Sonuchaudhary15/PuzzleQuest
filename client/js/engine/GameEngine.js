@@ -181,14 +181,19 @@ class GameEngine {
         });
         this.eventBus.emit('game:turn_ended');
 
-        // Check for in-game mystery rift event (triggers midway through available moves once per match)
-        if (!this.mysteryRiftTriggered && !this.mysteryRiftCompleted && this.movesRemaining <= Math.floor(this.initialMoves / 2) && this.movesRemaining > 1) {
-          this.mysteryRiftTriggered = true;
-          this.eventBus.emit('game:mystery_rift_triggered', {
-            level: this.currentLevel,
-            movesRemaining: this.movesRemaining,
-            manual: false
-          });
+        // Check for in-game mystery rift event
+        // Triggers after exactly 3 moves (so you can see it immediately in demo)
+        // Only fires once per match — if already triggered, skips
+        if (!this.mysteryRiftTriggered && !this.mysteryRiftCompleted) {
+          const movesUsed = this.initialMoves - this.movesRemaining;
+          if (movesUsed >= 3) {
+            this.mysteryRiftTriggered = true;
+            this.eventBus.emit('game:mystery_rift_triggered', {
+              level: this.currentLevel,
+              movesRemaining: this.movesRemaining,
+              manual: false
+            });
+          }
         }
       }
 

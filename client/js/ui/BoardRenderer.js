@@ -529,53 +529,106 @@ class BoardRenderer {
     });
   }
 
-  // --- SIGNATURE FEATURE: CONNECTING ECHO BEAM ANIMATION ---
+  // --- SIGNATURE FEATURE: STAR-BURST ECHO ENERGY TRANSFER ANIMATION ---
   /**
-   * Fires a glowing energy beam from the MainBoard sapphire match location
-   * straight across into the EchoBoard!
+   * Fires a constellation of star-burst orbs that burst out of the matched sapphire tile,
+   * travel across to the Echo Board in a sparkling arc, and explode into star shards on arrival.
+   * No line is drawn — instead spinning ★ and ✦ emoji/glyphs fly and burst like fireworks!
    */
   triggerEchoBeam(sourceTiles = []) {
     if (!this.fxCanvas || !this.mainContainer || !this.echoContainer) return;
     const canvasRect = this.fxCanvas.getBoundingClientRect();
-    const echoRect = this.echoContainer.getBoundingClientRect();
+    const echoRect   = this.echoContainer.getBoundingClientRect();
 
-    const targetX = (echoRect.left + echoRect.width / 2) - canvasRect.left;
-    const targetY = (echoRect.top + echoRect.height / 2) - canvasRect.top;
+    const targetX = (echoRect.left + echoRect.width  / 2) - canvasRect.left;
+    const targetY = (echoRect.top  + echoRect.height / 2) - canvasRect.top;
+
+    const STAR_GLYPHS = ['★', '✦', '✧', '⭐', '✨', '💎', '🌟'];
+    const TRAIL_COLORS = ['#10b981', '#34d399', '#6ee7b7', '#a7f3d0', '#00e5ff', '#7c3aed', '#c4b5fd'];
 
     sourceTiles.forEach(tile => {
       const tileEl = this.mainContainer.querySelector(`[data-row="${tile.row}"][data-col="${tile.col}"]`);
-      if (tileEl) {
-        const tileRect = tileEl.getBoundingClientRect();
-        const startX = (tileRect.left + tileRect.width / 2) - canvasRect.left;
-        const startY = (tileRect.top + tileRect.height / 2) - canvasRect.top;
+      if (!tileEl) return;
 
-        this.beams.push({
-          startX,
-          startY,
+      const tileRect = tileEl.getBoundingClientRect();
+      const startX = (tileRect.left + tileRect.width  / 2) - canvasRect.left;
+      const startY = (tileRect.top  + tileRect.height / 2) - canvasRect.top;
+
+      // 1. INITIAL BURST — stars explode outward from the tile then converge toward echo board
+      const burstCount = 8 + Math.floor(Math.random() * 5); // 8-12 stars per tile
+      for (let i = 0; i < burstCount; i++) {
+        const angle   = (Math.PI * 2 / burstCount) * i + Math.random() * 0.3;
+        const speed   = 2.5 + Math.random() * 2.5;
+        const delay   = i * 18; // stagger launch for wave-burst feel
+        const glyph   = STAR_GLYPHS[Math.floor(Math.random() * STAR_GLYPHS.length)];
+        const color   = TRAIL_COLORS[Math.floor(Math.random() * TRAIL_COLORS.length)];
+        const size    = 13 + Math.floor(Math.random() * 9); // 13–21px
+
+        this.particles.push({
+          x: startX,
+          y: startY,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
           targetX,
           targetY,
-          progress: 0,
-          color: '#10b981',
-          width: 4 + Math.random() * 3,
-          maxLife: 24,
-          life: 0
+          phase: 'burst',       // burst → travel → arrive
+          delayFrames: Math.floor(delay / 16),
+          text: glyph,
+          color,
+          fontSize: size,
+          alpha: 0,             // fade-in during burst
+          decay: 0,
+          rotation: Math.random() * Math.PI * 2,
+          rotSpeed: (Math.random() - 0.5) * 0.18,
+          life: 0,
+          burstDuration: 8,     // frames of outburst before homing
+          homingSpeed: 4.5 + Math.random() * 2.5,
+          trailParticles: []
         });
+      }
 
-        // Add trailing energy particles
-        for (let i = 0; i < 6; i++) {
-          this.particles.push({
-            x: startX,
-            y: startY,
-            vx: (Math.random() - 0.5) * 4,
-            vy: (Math.random() - 0.5) * 4,
-            color: '#34d399',
-            radius: 2 + Math.random() * 2,
-            alpha: 1,
-            decay: 0.03
-          });
-        }
+      // 2. ORIGIN PULSE — ring of small sparkles at the source tile
+      for (let j = 0; j < 10; j++) {
+        const angle = (Math.PI * 2 / 10) * j;
+        this.particles.push({
+          x: startX + Math.cos(angle) * 6,
+          y: startY + Math.sin(angle) * 6,
+          vx: Math.cos(angle) * (1.5 + Math.random()),
+          vy: Math.sin(angle) * (1.5 + Math.random()),
+          text: null,
+          color: '#6ee7b7',
+          radius: 2.5 + Math.random() * 1.5,
+          alpha: 0.9,
+          decay: 0.04,
+          phase: 'sparkle'
+        });
       }
     });
+
+    // 3. ECHO BOARD ARRIVAL BURST — fires after the stars arrive (~650ms travel)
+    const echoArrivalDelay = 650;
+    setTimeout(() => {
+      if (!this.ctx) return;
+      const ARRIVAL_GLYPHS = ['★', '✨', '🌟', '💥', '✦'];
+      for (let k = 0; k < 18; k++) {
+        const angle = (Math.PI * 2 / 18) * k;
+        const speed = 3 + Math.random() * 4;
+        this.particles.push({
+          x: targetX,
+          y: targetY,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          text: ARRIVAL_GLYPHS[Math.floor(Math.random() * ARRIVAL_GLYPHS.length)],
+          color: ['#fbbf24', '#f59e0b', '#34d399', '#7c3aed', '#00e5ff'][Math.floor(Math.random() * 5)],
+          fontSize: 16 + Math.floor(Math.random() * 10),
+          alpha: 1,
+          decay: 0.025,
+          rotation: Math.random() * Math.PI * 2,
+          rotSpeed: (Math.random() - 0.5) * 0.2,
+          phase: 'arrival'
+        });
+      }
+    }, echoArrivalDelay);
   }
 
   /**
@@ -731,70 +784,131 @@ class BoardRenderer {
     if (!this.ctx || !this.fxCanvas) return;
     this.ctx.clearRect(0, 0, this.fxCanvas.width, this.fxCanvas.height);
 
-    // 1. Draw Connecting Echo Energy Beams
+    // 1. Legacy beam list (kept for safety, now unused but harmless)
     for (let i = this.beams.length - 1; i >= 0; i--) {
       const b = this.beams[i];
       b.life++;
-      b.progress = Math.min(1, b.life / (b.maxLife * 0.6));
-
-      const curX = b.startX + (b.targetX - b.startX) * b.progress;
-      const curY = b.startY + (b.targetY - b.startY) * b.progress;
-
-      // Glow effect
-      this.ctx.save();
-      this.ctx.shadowBlur = 15;
-      this.ctx.shadowColor = b.color;
-      this.ctx.strokeStyle = b.color;
-      this.ctx.lineWidth = b.width;
-      this.ctx.lineCap = 'round';
-
-      this.ctx.beginPath();
-      this.ctx.moveTo(b.startX, b.startY);
-
-      // Add electric jitter
-      const midX = (b.startX + curX) / 2 + (Math.random() - 0.5) * 14;
-      const midY = (b.startY + curY) / 2 + (Math.random() - 0.5) * 14;
-      this.ctx.quadraticCurveTo(midX, midY, curX, curY);
-      this.ctx.stroke();
-
-      // Energy pulse core
-      this.ctx.strokeStyle = '#ffffff';
-      this.ctx.lineWidth = b.width * 0.4;
-      this.ctx.stroke();
-
-      this.ctx.restore();
-
-      if (b.life >= b.maxLife) {
-        this.beams.splice(i, 1);
-      }
+      if (b.life >= b.maxLife) { this.beams.splice(i, 1); }
     }
 
-    // 2. Draw Particles
+    // 2. Star-Burst Echo Particles (multi-phase: burst → homing → arrival)
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
-      p.x += p.vx;
-      p.y += p.vy;
-      p.alpha -= p.decay;
 
-      if (p.alpha <= 0) {
-        this.particles.splice(i, 1);
+      // --- Delay Gate ---
+      if (p.delayFrames && p.delayFrames > 0) {
+        p.delayFrames--;
         continue;
       }
 
+      p.life = (p.life || 0) + 1;
+
+      // ── Phase: burst (explode outward from tile for burstDuration frames) ──
+      if (p.phase === 'burst') {
+        p.alpha = Math.min(1, p.alpha + 0.18);
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.rotation !== undefined) p.rotation += p.rotSpeed || 0;
+
+        // Leave a sparkling trail
+        if (p.life % 2 === 0 && p.text) {
+          this.particles.push({
+            x: p.x,
+            y: p.y,
+            text: '·',
+            color: p.color,
+            fontSize: 8,
+            alpha: 0.6,
+            decay: 0.07,
+            phase: 'sparkle'
+          });
+        }
+
+        if (p.life >= (p.burstDuration || 8)) {
+          p.phase = 'travel';
+          p.life = 0;
+        }
+      }
+
+      // ── Phase: travel (home toward echo board center) ──
+      else if (p.phase === 'travel') {
+        const dx = p.targetX - p.x;
+        const dy = p.targetY - p.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < 6) {
+          // Arrived — remove and let arrival burst take over
+          this.particles.splice(i, 1);
+          continue;
+        }
+
+        const speed = p.homingSpeed || 5;
+        p.x += (dx / dist) * speed;
+        p.y += (dy / dist) * speed;
+        if (p.rotation !== undefined) p.rotation += (p.rotSpeed || 0) * 1.5;
+
+        // Occasional sparkle trail during travel
+        if (p.life % 3 === 0 && p.text) {
+          this.particles.push({
+            x: p.x + (Math.random() - 0.5) * 4,
+            y: p.y + (Math.random() - 0.5) * 4,
+            text: ['·', '✦', '∘'][Math.floor(Math.random() * 3)],
+            color: p.color,
+            fontSize: 7 + Math.random() * 4,
+            alpha: 0.55,
+            decay: 0.06,
+            phase: 'sparkle'
+          });
+        }
+      }
+
+      // ── Phase: arrival / sparkle — simple fade-out ──
+      else {
+        p.x += p.vx || 0;
+        p.y += p.vy || 0;
+        if (p.vx) p.vx *= 0.93;
+        if (p.vy) p.vy *= 0.93;
+        p.alpha -= (p.decay || 0.03);
+        if (p.rotation !== undefined) p.rotation += (p.rotSpeed || 0);
+
+        if (p.alpha <= 0) {
+          this.particles.splice(i, 1);
+          continue;
+        }
+      }
+
+      // ── Draw ──
+      if (p.alpha <= 0) { this.particles.splice(i, 1); continue; }
+
       this.ctx.save();
-      this.ctx.globalAlpha = Math.max(0, p.alpha);
-      this.ctx.fillStyle = p.color;
-      this.ctx.shadowBlur = 8;
-      this.ctx.shadowColor = p.color;
+      this.ctx.globalAlpha = Math.max(0, Math.min(1, p.alpha));
+
       if (p.text) {
-        this.ctx.font = 'bold 18px Outfit, sans-serif';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText(p.text, p.x, p.y);
+        // Star glyph with glow
+        this.ctx.font = `bold ${p.fontSize || 16}px "Segoe UI Emoji", sans-serif`;
+        this.ctx.textAlign    = 'center';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.shadowBlur   = 18;
+        this.ctx.shadowColor  = p.color;
+        this.ctx.fillStyle    = p.color;
+
+        if (p.rotation !== undefined) {
+          this.ctx.translate(p.x, p.y);
+          this.ctx.rotate(p.rotation);
+          this.ctx.fillText(p.text, 0, 0);
+        } else {
+          this.ctx.fillText(p.text, p.x, p.y);
+        }
       } else {
+        // Classic dot particle
+        this.ctx.fillStyle  = p.color;
+        this.ctx.shadowBlur = 8;
+        this.ctx.shadowColor = p.color;
         this.ctx.beginPath();
-        this.ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        this.ctx.arc(p.x, p.y, p.radius || 2, 0, Math.PI * 2);
         this.ctx.fill();
       }
+
       this.ctx.restore();
     }
   }

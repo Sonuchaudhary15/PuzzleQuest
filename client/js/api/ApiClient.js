@@ -107,7 +107,7 @@ class ApiClient {
    */
   async getProfile() {
     try {
-      const res = await fetch(`${this.baseUrl}/api/auth/profile`, {
+      const res = await fetch(`${this.baseUrl}/api/auth/me`, {
         headers: this.getHeaders()
       });
       const data = await res.json();

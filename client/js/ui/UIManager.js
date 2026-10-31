@@ -1136,28 +1136,69 @@ class UIManager {
    */
   async loadProfileScreen() {
     const unauthedSection = document.getElementById('profile-unauthenticated');
-    const authedSection = document.getElementById('profile-authenticated');
+    const authedSection   = document.getElementById('profile-authenticated');
 
     if (!this.apiClient.isAuthenticated()) {
       if (unauthedSection) unauthedSection.style.display = 'block';
-      if (authedSection) authedSection.style.display = 'none';
+      if (authedSection)   authedSection.style.display   = 'none';
       return;
     }
 
     if (unauthedSection) unauthedSection.style.display = 'none';
-    if (authedSection) authedSection.style.display = 'block';
+    if (authedSection)   authedSection.style.display   = 'block';
 
     const profileRes = await this.apiClient.getProfile();
     if (profileRes.success && profileRes.user) {
       const u = profileRes.user;
-      document.getElementById('profile-username').textContent = u.username;
-      document.getElementById('profile-title').textContent = u.adventurerTitle || 'Grand Arch-Mage';
-      document.getElementById('profile-total-score').textContent = (u.totalScore || 0).toLocaleString();
-      document.getElementById('profile-total-stars').textContent = u.totalStars || 0;
-      document.getElementById('profile-cleared-levels').textContent = u.levelsCleared || 0;
-      document.getElementById('profile-created-date').textContent = new Date(u.createdAt).toLocaleDateString();
 
-      if (profileRes.inventory && this.gameEngine.relicManager) {
+      // Core identity
+      const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+
+      setEl('profile-username',       u.username || 'Adventurer');
+      setEl('profile-title',          u.adventurerTitle || 'Crystal Seeker');
+      setEl('profile-total-score',    (u.totalScore || 0).toLocaleString());
+      setEl('profile-total-stars',    u.totalStars || 0);
+      setEl('profile-cleared-levels', u.levelsCleared || 0);
+      setEl('profile-banana-solved',  u.bananaSolved || 0);
+      setEl('profile-relic-fragments', (u.relicFragments || 0).toLocaleString());
+      setEl('profile-created-date',   u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-GB', { year:'numeric', month:'long', day:'numeric' }) : 'Recently');
+
+      // Adventurer Tier badge
+      const tierEl = document.getElementById('profile-tier-badge');
+      if (tierEl) {
+        const stars = u.totalStars || 0;
+        let tier = 'Apprentice Novice', tierClass = 'tier-novice';
+        if (stars >= 12) { tier = '👑 Grand Master';      tierClass = 'tier-grandmaster'; }
+        else if (stars >= 8)  { tier = '⚡ Adept Conjurer';  tierClass = 'tier-adept'; }
+        else if (stars >= 4)  { tier = '📜 Rune Scholar';    tierClass = 'tier-scholar'; }
+        tierEl.textContent = tier;
+        tierEl.className = `profile-tier-badge ${tierClass}`;
+      }
+
+      // Avatar: pick based on tier
+      const avatarEl = document.getElementById('profile-avatar');
+      if (avatarEl) {
+        const stars = u.totalStars || 0;
+        avatarEl.textContent = stars >= 12 ? '🧙‍♀️' : stars >= 8 ? '⚔️' : stars >= 4 ? '🔮' : '🧙‍♂️';
+      }
+
+      // Realm Progress bar (based on levels cleared / 12 total levels)
+      const totalLevels = 12;
+      const cleared = Math.min(u.levelsCleared || 0, totalLevels);
+      const pct = Math.round((cleared / totalLevels) * 100);
+      const barEl  = document.getElementById('profile-progress-bar');
+      const pctEl  = document.getElementById('profile-progress-pct');
+      const noteEl = document.getElementById('profile-progress-note');
+      if (barEl)  barEl.style.width = `${pct}%`;
+      if (pctEl)  pctEl.textContent = `${pct}%`;
+      if (noteEl) {
+        noteEl.textContent = cleared >= totalLevels
+          ? '🎉 All 12 Realm Stages Conquered — Grand Apex Achieved!'
+          : `${cleared} / ${totalLevels} Stages cleared — ${totalLevels - cleared} remain to reach Grand Apex!`;
+      }
+
+      // Sync relic inventory if present
+      if (profileRes.inventory && this.gameEngine?.relicManager) {
         this.gameEngine.relicManager.syncFromServer({
           fragments: u.relicFragments,
           inventory: profileRes.inventory
