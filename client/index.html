@@ -354,31 +354,67 @@
 
         <!-- Authenticated View -->
         <div id="profile-authenticated" style="display: none;">
-          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
-            <div>
-              <h2 id="profile-username" class="brand-title">Arch-Mage</h2>
+          <!-- Header row -->
+          <div class="profile-hero-row">
+            <div class="profile-avatar-circle" id="profile-avatar">🧙‍♂️</div>
+            <div class="profile-identity">
+              <h2 id="profile-username" class="brand-title" style="margin: 0;">Arch-Mage</h2>
               <span id="profile-title" class="badge badge-success">Crystal Seeker</span>
+              <div id="profile-tier-badge" class="profile-tier-badge">Apprentice Novice</div>
             </div>
-            <button id="btn-logout" class="btn btn-outline btn-sm">Log Out</button>
+            <button id="btn-logout" class="btn btn-outline btn-sm" style="margin-left: auto;">Log Out</button>
           </div>
 
-          <div class="profile-stats-grid">
-            <div class="profile-stat-box">
+          <!-- Core Stats Grid -->
+          <div class="profile-stats-grid profile-stats-grid-3">
+            <div class="profile-stat-box profile-stat-score">
+              <div class="profile-stat-icon">🏆</div>
               <div class="hud-stat-label">Total Score</div>
               <div id="profile-total-score" class="hud-stat-value text-accent">0</div>
             </div>
             <div class="profile-stat-box">
-              <div class="hud-stat-label">Total Stars</div>
+              <div class="profile-stat-icon">⭐</div>
+              <div class="hud-stat-label">Stars Earned</div>
               <div id="profile-total-stars" class="hud-stat-value text-gold">0</div>
             </div>
             <div class="profile-stat-box">
+              <div class="profile-stat-icon">🗺️</div>
               <div class="hud-stat-label">Levels Cleared</div>
               <div id="profile-cleared-levels" class="hud-stat-value">0</div>
             </div>
           </div>
 
-          <p class="text-secondary" style="font-size: 0.85rem;">
-            Account Member Since: <strong id="profile-created-date">Recently</strong>
+          <!-- Extended Stats Row -->
+          <div class="profile-stats-grid profile-stats-grid-2" style="margin-top: 12px;">
+            <div class="profile-stat-box">
+              <div class="profile-stat-icon">🍌</div>
+              <div class="hud-stat-label">Mystery Challenges Solved</div>
+              <div id="profile-banana-solved" class="hud-stat-value" style="color: #f59e0b;">0</div>
+            </div>
+            <div class="profile-stat-box">
+              <div class="profile-stat-icon">💎</div>
+              <div class="hud-stat-label">Relic Fragments</div>
+              <div id="profile-relic-fragments" class="hud-stat-value text-gold">0</div>
+            </div>
+          </div>
+
+          <!-- Progress Bar: Level Progression -->
+          <div class="profile-progress-section">
+            <div class="profile-progress-label">
+              <span>Realm Progression</span>
+              <span id="profile-progress-pct">0%</span>
+            </div>
+            <div class="profile-progress-track">
+              <div id="profile-progress-bar" class="profile-progress-fill" style="width: 0%;"></div>
+            </div>
+            <div class="profile-progress-note text-secondary" id="profile-progress-note">
+              Complete levels on the Adventure Map to advance your realm rank!
+            </div>
+          </div>
+
+          <!-- Account Footer -->
+          <p class="text-secondary" style="font-size: 0.83rem; margin-top: 16px; border-top: 1px solid var(--border-subtle); padding-top: 12px;">
+            ⚔️ Member Since: <strong id="profile-created-date">Recently</strong>
           </p>
         </div>
       </div>

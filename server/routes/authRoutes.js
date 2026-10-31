@@ -192,9 +192,9 @@ router.post('/login', async (req, res) => {
 });
 
 /**
- * GET /api/auth/me
+ * GET /api/auth/me  (and /api/auth/profile alias)
  */
-router.get('/me', authMiddleware, async (req, res) => {
+const profileHandler = async (req, res) => {
   try {
     let user;
     let inventory = { row_clear: 1, barrier_breaker: 1, echo_amplifier: 1, crystal_burst: 1 };
@@ -231,6 +231,7 @@ router.get('/me', authMiddleware, async (req, res) => {
         totalStars: user.totalStars || 0,
         levelsCleared: user.levelsCleared || 0,
         relicFragments: user.relicFragments || 0,
+        bananaSolved: user.bananaSolved || 0,
         createdAt: user.createdAt
       },
       inventory,
@@ -240,6 +241,9 @@ router.get('/me', authMiddleware, async (req, res) => {
     console.error('[Profile Fetch Error]', err);
     return res.status(500).json({ error: 'Server error fetching player profile.' });
   }
-});
+};
+
+router.get('/me',      authMiddleware, profileHandler);
+router.get('/profile', authMiddleware, profileHandler);
 
 module.exports = router;

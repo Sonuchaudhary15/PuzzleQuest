@@ -440,24 +440,121 @@
   border: 1.5px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   padding: 32px;
-  max-width: 680px;
+  max-width: 720px;
   margin: 0 auto;
   box-shadow: 0 8px 25px rgba(10, 60, 40, 0.06);
 }
 
+/* Profile hero row: avatar + identity + logout */
+.profile-hero-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.profile-avatar-circle {
+  width: 62px;
+  height: 62px;
+  min-width: 62px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+  border: 2px solid rgba(16,185,129,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  box-shadow: 0 4px 12px rgba(16,185,129,0.25);
+}
+
+.profile-identity {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Tier badge */
+.profile-tier-badge {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+}
+.tier-novice       { background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; }
+.tier-scholar      { background: #fef9c3; color: #92400e; border: 1px solid #fcd34d; }
+.tier-adept        { background: #dbeafe; color: #1e40af; border: 1px solid #93c5fd; }
+.tier-grandmaster  { background: linear-gradient(90deg,#fbbf24,#f59e0b); color: #fff; border: none; box-shadow: 0 0 8px rgba(245,158,11,0.5); }
+
+/* Stats grids */
 .profile-stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-  gap: 16px;
-  margin: 24px 0;
+  gap: 14px;
+  margin: 0 0 0 0;
 }
+.profile-stats-grid-3 { grid-template-columns: repeat(3, 1fr); }
+.profile-stats-grid-2 { grid-template-columns: repeat(2, 1fr); }
 
 .profile-stat-box {
   background: #f0fdf4;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  padding: 14px;
+  padding: 16px 12px;
   text-align: center;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.profile-stat-box:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(16,185,129,0.15);
+}
+.profile-stat-score { border-color: rgba(245,158,11,0.35); background: #fffbeb; }
+
+.profile-stat-icon {
+  font-size: 1.4rem;
+  margin-bottom: 4px;
+}
+
+/* Realm Progress bar */
+.profile-progress-section {
+  margin-top: 20px;
+  padding: 14px 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+.profile-progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #064e3b;
+  margin-bottom: 8px;
+}
+.profile-progress-track {
+  width: 100%;
+  height: 10px;
+  background: #e2e8f0;
+  border-radius: 5px;
+  overflow: hidden;
+}
+.profile-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #059669, #f59e0b);
+  border-radius: 5px;
+  transition: width 0.8s cubic-bezier(0.25,1,0.5,1);
+}
+.profile-progress-note {
+  font-size: 0.78rem;
+  margin-top: 6px;
+}
+
+@media (max-width: 600px) {
+  .profile-stats-grid-3 { grid-template-columns: repeat(2, 1fr); }
+  .profile-stats-grid-2 { grid-template-columns: 1fr; }
 }
 
 /* Help & Architecture */
@@ -916,6 +1013,174 @@
   .dossier-achievements-row {
     grid-template-columns: 1fr;
   }
+}
+
+/* ==========================================================================
+   IN-GAME ARCANE MYSTERY RIFT MODAL & HUD CONTROLS
+   ========================================================================== */
+#btn-summon-rift {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  border: 1px solid #b45309;
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+  animation: riftPulse 2.5s infinite ease-in-out;
+}
+
+#btn-summon-rift:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.7);
+}
+
+@keyframes riftPulse {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 18px rgba(245, 158, 11, 0.85);
+  }
+}
+
+.mystery-modal-content {
+  max-width: 540px;
+  width: 92%;
+  padding: 24px;
+  background: #ffffff;
+  border-radius: var(--radius-lg);
+  border: 2px solid rgba(16, 185, 129, 0.4);
+  box-shadow: 0 12px 40px rgba(6, 78, 59, 0.25);
+  position: relative;
+}
+
+.rift-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.mystery-rift-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #065f46, #047857);
+  color: #a7f3d0;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 6px rgba(4, 120, 87, 0.3);
+}
+
+.mystery-timer-container {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+}
+
+.mystery-timer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.mystery-timer-text {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #064e3b;
+}
+
+.mystery-timer-track {
+  width: 100%;
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.mystery-timer-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #f59e0b, #ef4444);
+  border-radius: 4px;
+  transition: width 0.95s linear, background 0.3s;
+}
+
+.mystery-img-frame {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 8px;
+  text-align: center;
+  margin-bottom: 12px;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mystery-img-frame img {
+  max-width: 100%;
+  max-height: 220px;
+  border-radius: 6px;
+  object-fit: contain;
+}
+
+.mystery-keypad-row {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.btn-num-key {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #1e293b;
+  border-radius: 6px;
+  padding: 8px 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-num-key:hover {
+  background: #dbeafe;
+  border-color: #3b82f6;
+  color: #1d4ed8;
+  transform: translateY(-2px);
+}
+
+.btn-num-key.active {
+  background: #10b981;
+  border-color: #059669;
+  color: #ffffff;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+
+.mystery-input-action-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.mystery-digit-input {
+  width: 80px;
+  text-align: center;
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #064e3b;
+  padding: 8px;
+}
+
+.mystery-notice {
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: center;
 }
 
 /* ==========================================================================
