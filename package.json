@@ -7,8 +7,8 @@
   "scripts": {
     "start": "node server/server.js",
     "dev": "node --watch server/server.js",
-    "test": "node --test tests/auth.test.js tests/bananaProxy.test.js tests/echoBoard.test.js tests/eventBus.test.js tests/leaderboard.test.js tests/matchEngine.test.js tests/relicCrafting.test.js tests/validation.test.js",
-    "test:watch": "node --test --watch tests/auth.test.js tests/bananaProxy.test.js tests/echoBoard.test.js tests/eventBus.test.js tests/leaderboard.test.js tests/matchEngine.test.js tests/relicCrafting.test.js tests/validation.test.js"
+    "test": "node --test tests/adventureMapResume.test.js tests/auth.test.js tests/bananaProxy.test.js tests/echoBoard.test.js tests/eventBus.test.js tests/leaderboard.test.js tests/matchEngine.test.js tests/relicCrafting.test.js tests/validation.test.js",
+    "test:watch": "node --test --watch tests/adventureMapResume.test.js tests/auth.test.js tests/bananaProxy.test.js tests/echoBoard.test.js tests/eventBus.test.js tests/leaderboard.test.js tests/matchEngine.test.js tests/relicCrafting.test.js tests/validation.test.js"
   },
   "keywords": [
     "match-3",

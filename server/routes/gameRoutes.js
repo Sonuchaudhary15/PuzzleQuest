@@ -80,6 +80,7 @@ router.post('/complete-level', optionalAuth, async (req, res) => {
         user.levelsCleared = (user.levelsCleared || 0) + 1;
         user.relicFragments = (user.relicFragments || 0) + bonusFragments;
       }
+      await memoryStore.saveLevelProgress(userId, levelId, verifiedStars, score);
     } else {
       // Upsert LevelProgress
       await LevelProgress.findOneAndUpdate(
@@ -138,10 +139,11 @@ router.get('/progress', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.userId;
     if (isUsingMemoryStore()) {
-      return res.json({ progress: [] });
+      const progress = await memoryStore.getLevelProgress(userId);
+      return res.json({ success: true, progress });
     }
-    const progress = await LevelProgress.find({ userId });
-    return res.json({ progress });
+    const progress = await LevelProgress.find({ userId }).lean();
+    return res.json({ success: true, progress });
   } catch (err) {
     return res.status(500).json({ error: 'Failed to fetch player progress.' });
   }

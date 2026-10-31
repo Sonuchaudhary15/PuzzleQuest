@@ -22,9 +22,11 @@ class UIManager {
 
     this.unlockedLevels = [1];
     this.completedLevels = new Map(); // levelId -> { stars, score }
+    this.currentResumeLevelId = 1;
     this.activeBananaChallenge = null;
 
     this.initDOMElements();
+    this.initProgress();
     this.bindEvents();
     this.initAudioButton();
     this.initAuthForms();
@@ -60,6 +62,161 @@ class UIManager {
 
     // User session badge
     this.userStatusBadge = document.getElementById('user-status-badge');
+  }
+
+  /**
+   * Initialize and restore adventure progression from LocalStorage & Cloud
+   * Ensures players continue right where they left off across reloads & sessions
+   */
+  initProgress() {
+    this.completedLevels = new Map();
+    this.unlockedLevels = [1];
+    this.currentResumeLevelId = 1;
+
+    try {
+      // 1. Restore completed levels from LocalStorage
+      const savedCompleted = localStorage.getItem('pq_completed_levels');
+      if (savedCompleted) {
+        const parsed = JSON.parse(savedCompleted);
+        if (Array.isArray(parsed)) {
+          parsed.forEach(item => {
+            if (item && item.levelId) {
+              this.completedLevels.set(parseInt(item.levelId, 10), {
+                stars: item.stars || 1,
+                score: item.score || 0
+              });
+            }
+          });
+        }
+      }
+
+      // 2. Recompute all unlocked stages according to branching paths
+      this.recomputeUnlockedLevels();
+
+      // 3. Read last played level
+      const savedLastLevel = localStorage.getItem('pq_last_level_id');
+      if (savedLastLevel) {
+        const lastId = parseInt(savedLastLevel, 10);
+        if (this.unlockedLevels.includes(lastId)) {
+          this.currentResumeLevelId = lastId;
+        } else {
+          this.currentResumeLevelId = this.determineBestResumeLevel();
+        }
+      } else {
+        this.currentResumeLevelId = this.determineBestResumeLevel();
+      }
+    } catch (e) {
+      console.warn('[UIManager] Error loading local progress:', e);
+    }
+
+    this.updateHomeContinueButton();
+
+    // 4. If authenticated, fetch cloud progress and merge
+    if (this.apiClient?.isAuthenticated()) {
+      this.syncProgressFromCloud();
+    }
+  }
+
+  /**
+   * Recompute unlocked level IDs based on all completed levels
+   */
+  recomputeUnlockedLevels() {
+    const unlocked = new Set([1]);
+    const levels = (typeof window !== 'undefined' && window.LEVELS) ? window.LEVELS : [];
+
+    this.completedLevels.forEach((val, levelId) => {
+      const def = levels.find(l => l.id === levelId);
+      if (def?.nextLevels) {
+        def.nextLevels.forEach(nxt => unlocked.add(nxt));
+      }
+    });
+
+    this.unlockedLevels = Array.from(unlocked).sort((a, b) => a - b);
+  }
+
+  /**
+   * Find the optimal level to resume (first incomplete unlocked level or highest unlocked level)
+   */
+  determineBestResumeLevel() {
+    const levels = (typeof window !== 'undefined' && window.LEVELS) ? window.LEVELS : [];
+    // Prioritize first unlocked stage not yet completed
+    for (const lvlId of this.unlockedLevels) {
+      if (!this.completedLevels.has(lvlId)) {
+        return lvlId;
+      }
+    }
+    // If all unlocked stages are completed, return highest unlocked
+    return this.unlockedLevels[this.unlockedLevels.length - 1] || 1;
+  }
+
+  /**
+   * Get the level definition object where the player should continue
+   */
+  getResumeLevel() {
+    const levels = (typeof window !== 'undefined' && window.LEVELS) ? window.LEVELS : [];
+    return levels.find(l => l.id === this.currentResumeLevelId) || levels[0];
+  }
+
+  /**
+   * Persist progression state to LocalStorage
+   */
+  saveProgressToStorage() {
+    try {
+      const list = [];
+      this.completedLevels.forEach((val, levelId) => {
+        list.push({ levelId, stars: val.stars, score: val.score });
+      });
+      localStorage.setItem('pq_completed_levels', JSON.stringify(list));
+      localStorage.setItem('pq_last_level_id', this.currentResumeLevelId);
+    } catch (e) {
+      console.warn('[UIManager] Failed saving progress to LocalStorage:', e);
+    }
+
+    this.updateHomeContinueButton();
+  }
+
+  /**
+   * Synchronize progression with cloud account
+   */
+  async syncProgressFromCloud() {
+    try {
+      const res = await this.apiClient.getProgress();
+      if (res.success && Array.isArray(res.progress) && res.progress.length > 0) {
+        res.progress.forEach(p => {
+          if (p.completed && p.levelId) {
+            const current = this.completedLevels.get(p.levelId);
+            const stars = Math.max(current?.stars || 0, p.stars || 1);
+            const score = Math.max(current?.score || 0, p.highScore || 0);
+            this.completedLevels.set(p.levelId, { stars, score });
+          }
+        });
+
+        this.recomputeUnlockedLevels();
+        this.currentResumeLevelId = this.determineBestResumeLevel();
+        this.saveProgressToStorage();
+
+        // Refresh world map if player is currently viewing it
+        if (this.screenManager?.currentScreenId === 'map') {
+          this.renderWorldMap();
+        }
+      }
+    } catch (err) {
+      console.warn('[UIManager] Cloud progress sync notice:', err.message);
+    }
+  }
+
+  /**
+   * Update the Home Screen button with the continue stage name
+   */
+  updateHomeContinueButton() {
+    const btnPlay = document.getElementById('btn-home-play');
+    if (!btnPlay) return;
+    const resumeLvl = this.getResumeLevel();
+    if (this.completedLevels.size > 0 && resumeLvl) {
+      btnPlay.innerHTML = `Continue Quest (Stage ${resumeLvl.id}: ${resumeLvl.name}) ⚔️`;
+    } else {
+      btnPlay.innerHTML = `Embark on Adventure`;
+    }
   }
 
   bindEvents() {
@@ -334,15 +491,16 @@ class UIManager {
   async showVictoryModal(data) {
     // Record completion
     this.completedLevels.set(data.levelId, { stars: data.stars, score: data.score });
-    
-    // Unlock next levels
-    if (this.gameEngine.currentLevel?.nextLevels) {
-      for (const nxt of this.gameEngine.currentLevel.nextLevels) {
-        if (!this.unlockedLevels.includes(nxt)) {
-          this.unlockedLevels.push(nxt);
-        }
-      }
+    this.recomputeUnlockedLevels();
+
+    // Automatically set the next stage as resume level
+    const nextList = this.gameEngine.currentLevel?.nextLevels || [];
+    if (nextList.length > 0) {
+      this.currentResumeLevelId = nextList[0];
+    } else {
+      this.currentResumeLevelId = data.levelId;
     }
+    this.saveProgressToStorage();
 
     // Submit to server
     const submitResult = await this.apiClient.submitLevelComplete(data);
@@ -389,6 +547,8 @@ class UIManager {
     const nextDef = window.LEVELS.find(l => l.id === nxtId);
 
     if (nextDef) {
+      this.currentResumeLevelId = nextDef.id;
+      this.saveProgressToStorage();
       this.gameEngine.startLevel(nextDef);
       this.screenManager.showScreen('game');
     } else {
@@ -402,6 +562,8 @@ class UIManager {
   handleReplayLevel() {
     this.victoryModal.classList.remove('modal-open');
     this.defeatModal.classList.remove('modal-open');
+    this.currentResumeLevelId = this.gameEngine.currentLevel.id;
+    this.saveProgressToStorage();
     this.gameEngine.startLevel(this.gameEngine.currentLevel);
     this.screenManager.showScreen('game');
   }
@@ -417,6 +579,29 @@ class UIManager {
     }
     if (!this.mapContainer) return;
     this.mapContainer.innerHTML = '';
+
+    // Quick Resume Quest Banner at top of map
+    const resumeLevel = this.getResumeLevel();
+    const resumeBanner = document.getElementById('map-resume-banner');
+    const resumeTitle = document.getElementById('map-resume-title');
+    const resumeSub = document.getElementById('map-resume-sub');
+    const resumeBtn = document.getElementById('btn-map-resume-quest');
+
+    if (resumeBanner && resumeTitle && resumeBtn && resumeLevel) {
+      resumeBanner.style.display = 'flex';
+      resumeTitle.textContent = `Stage ${resumeLevel.id}: ${resumeLevel.name}`;
+      if (resumeSub) {
+        resumeSub.textContent = this.completedLevels.has(resumeLevel.id)
+          ? `Cleared (Score: ${this.completedLevels.get(resumeLevel.id).score.toLocaleString()} pts) — Replay to master 3 Stars!`
+          : (resumeLevel.isBoss ? '⚠️ Boss Encounter Ahead!' : 'Resume right where you left off');
+      }
+      resumeBtn.onclick = () => {
+        this.currentResumeLevelId = resumeLevel.id;
+        this.saveProgressToStorage();
+        this.gameEngine.startLevel(resumeLevel);
+        this.screenManager.showScreen('game');
+      };
+    }
 
     window.REGIONS.forEach(region => {
       const regionCard = document.createElement('div');
@@ -443,9 +628,10 @@ class UIManager {
       regionLevels.forEach(lvl => {
         const isUnlocked = !isLocked && this.unlockedLevels.includes(lvl.id);
         const completion = this.completedLevels.get(lvl.id);
+        const isCurrent = lvl.id === this.currentResumeLevelId;
 
         const nodeBtn = document.createElement('div');
-        nodeBtn.className = `level-node-card ${isUnlocked ? 'node-available' : 'node-locked'} ${completion ? 'node-cleared' : ''}`;
+        nodeBtn.className = `level-node-card ${isUnlocked ? 'node-available' : 'node-locked'} ${completion ? 'node-cleared' : ''} ${isCurrent ? 'node-current' : ''}`;
         
         let starsDisplay = '';
         if (completion) {
@@ -458,20 +644,23 @@ class UIManager {
             <div class="node-name">${lvl.name}</div>
             <div class="node-objectives">${lvl.mainObjective.description} | ${lvl.echoObjective.description}</div>
             ${completion ? `<div class="node-stars">${starsDisplay} (${completion.score.toLocaleString()} pts)</div>` : ''}
+            ${isCurrent ? `<span class="current-level-badge">▶ Current Quest</span>` : ''}
             ${lvl.branch ? `<span class="branch-tag">Route ${lvl.branch}</span>` : ''}
           </div>
           <div class="node-action">
-            ${isUnlocked ? '<button class="btn btn-primary btn-sm">Enter</button>' : '<span class="lock-icon">🔒</span>'}
+            ${isUnlocked ? `<button class="btn ${isCurrent ? 'btn-gold' : 'btn-primary'} btn-sm">${isCurrent ? 'Continue' : (completion ? 'Replay' : 'Enter')}</button>` : '<span class="lock-icon">🔒</span>'}
           </div>
         `;
 
         if (isUnlocked) {
           const launch = () => {
+            this.currentResumeLevelId = lvl.id;
+            this.saveProgressToStorage();
             this.gameEngine.startLevel(lvl);
             this.screenManager.showScreen('game');
           };
           nodeBtn.addEventListener('click', launch);
-          nodeBtn.querySelector('.btn-primary')?.addEventListener('click', (e) => {
+          nodeBtn.querySelector('button')?.addEventListener('click', (e) => {
             e.stopPropagation();
             launch();
           });
@@ -1267,6 +1456,8 @@ class UIManager {
         const res = await this.apiClient.login(username, password);
         if (res.success) {
           updateHeaderBadge();
+          await this.syncProgressFromCloud();
+          this.gameEngine.startLevel(this.getResumeLevel());
           this.screenManager.showScreen('map');
           this.renderWorldMap();
         } else {
@@ -1288,6 +1479,8 @@ class UIManager {
         const res = await this.apiClient.register(username, password, adventurerTitle);
         if (res.success) {
           updateHeaderBadge();
+          await this.syncProgressFromCloud();
+          this.gameEngine.startLevel(this.getResumeLevel());
           this.screenManager.showScreen('map');
           this.renderWorldMap();
         } else {
@@ -1301,6 +1494,7 @@ class UIManager {
       logoutBtn.addEventListener('click', () => {
         this.apiClient.clearSession();
         updateHeaderBadge();
+        this.initProgress();
         this.screenManager.showToast('Logged out successfully.', 'info', 2500);
         this.screenManager.showScreen('home');
       });

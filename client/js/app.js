@@ -61,22 +61,28 @@ document.addEventListener('DOMContentLoaded', () => {
     soundManager
   });
 
-  // Ensure level 1 is pre-initialized on boot
-  gameEngine.startLevel(window.LEVELS[0]);
+  // Pre-initialize engine with saved quest level so players resume where they left off
+  const resumeLevel = uiManager.getResumeLevel();
+  gameEngine.startLevel(resumeLevel);
 
-  // Hook Battle Board nav to ensure level is active
+  // Hook Battle Board nav to ensure active resume level is loaded
   document.querySelectorAll('[data-nav-target="game"]').forEach(btn => {
     btn.addEventListener('click', () => {
       if (!gameEngine.currentLevel) {
-        gameEngine.startLevel(window.LEVELS[0]);
+        gameEngine.startLevel(uiManager.getResumeLevel());
       }
     });
   });
 
-  // Home screen Play button
+  // Home screen Play button: continues where user left off
   document.getElementById('btn-home-play')?.addEventListener('click', () => {
-    screenManager.showScreen('map');
-    uiManager.renderWorldMap();
+    if (apiClient.isAuthenticated()) {
+      screenManager.showScreen('map');
+      uiManager.renderWorldMap();
+    } else {
+      screenManager.showToast('Please sign in or create an identity to play PuzzleQuest!', 'warning', 3500);
+      screenManager.showScreen('auth');
+    }
   });
 
   // Home screen Tutorial button (Launches Level 1 directly)
