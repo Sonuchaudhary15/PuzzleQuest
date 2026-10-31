@@ -46,6 +46,33 @@ class InMemoryDbStore {
     list.sort((a, b) => b.totalScore - a.totalScore);
     return list.slice(0, limit);
   }
+
+  async saveLevelProgress(userId, levelId, stars, score) {
+    const key = `${userId}_${levelId}`;
+    const existing = this.progress.get(key) || {
+      userId,
+      levelId: parseInt(levelId, 10),
+      stars: 0,
+      highScore: 0,
+      completed: false
+    };
+    existing.stars = Math.max(existing.stars || 0, stars || 1);
+    existing.highScore = Math.max(existing.highScore || 0, score || 0);
+    existing.completed = true;
+    existing.clearedAt = new Date();
+    this.progress.set(key, existing);
+    return existing;
+  }
+
+  async getLevelProgress(userId) {
+    const list = [];
+    for (const p of this.progress.values()) {
+      if (p.userId === userId) {
+        list.push(p);
+      }
+    }
+    return list;
+  }
 }
 
 const memoryStore = new InMemoryDbStore();
